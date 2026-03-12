@@ -4,10 +4,11 @@
 
 | Technology | Version | Purpose |
 |-----------|---------|---------|
-| React | 18.3+ | UI with concurrent rendering, `useSyncExternalStore` for Zustand |
-| TypeScript | 5.4+ | Strict mode, template literal types, `satisfies` operator |
-| Vite | 5.x | Dev server (<100ms HMR), ESM-native, serves `public/worklets/` as-is |
-| Zustand | 4.5+ | State management (~1KB gzipped), selector-based subscriptions, middleware |
+| React | 18.3.1 | UI with concurrent rendering, `useSyncExternalStore` for Zustand |
+| TypeScript | 5.7.2 | Strict mode + `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `verbatimModuleSyntax` |
+| Vite | 6.0.3 | Dev server (http://localhost:8087, no SSL), ESM-native, serves `public/worklets/` as-is |
+| Zustand | 5.0.1 | State management (~1KB gzipped), selector-based subscriptions, middleware |
+| React Router | 6.28.0 | Client-side routing (5 screens: /, /record, /review, /timeline, /settings) |
 
 ## Audio Stack
 
@@ -27,24 +28,26 @@
 
 | Tool | Version | Purpose |
 |------|---------|---------|
-| Vitest | 1.x | Unit + integration tests; shares Vite transform pipeline; `vi.fn()`/`vi.mock()` for Web Audio mocks |
-| Playwright | 1.42+ | E2E across Chromium, Firefox, WebKit; `getUserMedia` mocking via `grantPermissions()` |
-| OfflineAudioContext | (built-in) | Deterministic audio pipeline testing without real-time constraints |
-| fake-indexeddb | - | IndexedDB mock for persistence layer unit tests |
+| Vitest | 2.1.5 | Unit + integration tests; jsdom environment; V8 coverage; `pool: 'forks'` |
+| Playwright | 1.49.0 | E2E across 5 projects: Chromium, Firefox, WebKit, Pixel 7, iPhone 14 |
+| jsdom | 25.0.1 | DOM environment for component tests |
+| @vitest/coverage-v8 | 2.1.5 | V8 coverage provider; 80% thresholds (branches/functions/lines/statements) |
 
-**Test structure**: `tests/unit/` mirrors `src/`; `tests/integration/` for multi-module pipelines with real audio fixtures; `tests/e2e/` for full user flows; `tests/fixtures/` for WAV files and pre-computed feature vectors.
+**Test structure**: `tests/unit/` mirrors `src/`; `tests/integration/` for multi-module pipelines; `tests/e2e/` for Playwright; `tests/fixtures/` for WAV files; `tests/helpers/` for mocks and setup.
+
+**Test infrastructure**: `setupTests.ts` provides global AudioContext + MediaStream mocks. `audioMocks.ts` exports `createMockAudioContext()` and `createMockMediaStream()` factories. Test files use `tsconfig.test.json` (includes tests/, relaxed unused-var rules).
 
 ## Build and Tooling
 
 | Tool | Version | Config |
 |------|---------|--------|
-| ESLint | 8.x | `@typescript-eslint/parser`, `eslint-plugin-react-hooks`, no `any` in audio pipeline |
-| Prettier | 3.x | Single quotes, trailing commas, 100-char line width |
-| Husky | 9.x | Git hooks manager, runs lint-staged on pre-commit |
-| lint-staged | 15.x | ESLint fix + Prettier on staged files only |
-| GitHub Actions | - | `ci.yml` (lint, typecheck, unit tests, build), `e2e.yml` (Playwright on push to main) |
+| ESLint | 8.57.1 | `.eslintrc.cjs` — strict-type-checked, stylistic-type-checked, react-hooks, import/order |
+| Prettier | 3.4.2 | `.prettierrc` — single quotes, trailing commas, 100-char, LF |
+| Husky | 9.1.7 | `.husky/pre-commit` — runs lint-staged |
+| lint-staged | 15.2.10 | ESLint fix + Prettier on staged .ts/.tsx/.css files |
+| GitHub Actions | - | `ci.yml` (lint, typecheck, unit tests, build), `e2e.yml` (Playwright 3-browser matrix) |
 
-**Vite specifics**: AudioWorklet files served from `public/worklets/` as static JS (no bundling). No `vite-plugin-static-copy` needed. Worklet files must not import from `src/`.
+**Vite specifics**: AudioWorklet files served from `public/worklets/` as static JS (no bundling). No SSL plugin — dev server is plain HTTP. COOP/COEP headers set for SharedArrayBuffer. Worklet files must not import from `src/`.
 
 ## Browser Targets
 
@@ -72,6 +75,10 @@
 - OGG codec not supported: fall back to MP3 for sample loading (`canPlayType('audio/ogg; codecs=vorbis')`).
 - Max ~4 AudioContext instances (vs ~6 on Chrome/Firefox).
 
+### getUserMedia & HTTPS
+- `getUserMedia` requires HTTPS in production. On `localhost`, all browsers allow it over HTTP.
+- Dev server runs HTTP on port 8087 — no SSL needed locally.
+
 ## Performance Budgets
 
 | Metric | Target |
@@ -91,7 +98,7 @@
 
 Rationale: Full control over AudioWorklet-compatible code (no DOM/fetch dependencies), deterministic behavior, smaller bundle, deeper understanding for debugging.
 
-**Allowed external deps**: React, Zustand, Vite (build), idb-keyval (IndexedDB wrapper), nanoid (IDs). Testing tools are devDependencies only.
+**Allowed external deps**: React, Zustand, react-router-dom, Vite (build). Testing tools are devDependencies only.
 
 ## Project Structure
 
@@ -106,15 +113,16 @@ src/
     playback/          # PlaybackEngine (lookahead scheduler), SampleBank
   state/               # Zustand stores (5 slices) + middleware/ (persist, devtools)
   hooks/               # React hooks bridging audio modules and component lifecycle
-  types/               # Shared TS types (audio, clustering, timeline, session, instruments)
+  types/               # Shared TS types + global.d.ts (AudioWorklet ambient types, __DEV__)
   utils/               # Pure utilities: math, time, arrayBuffer, platform detection
-  styles/              # Global CSS + theme tokens (CSS custom properties, no CSS-in-JS)
-  assets/samples/      # Built-in instrument samples: WAV, 16-bit, 44.1kHz mono
+  styles/              # theme.css (40+ custom props), global.css (reset), animations.css (keyframes)
+  assets/samples/      # Built-in instrument samples
 public/
   worklets/            # AudioWorklet processor JS files (served as static, separate from src/)
 tests/
   unit/                # Mirrors src/ structure
-  integration/         # Multi-module pipeline tests with real audio fixtures
+  integration/         # Multi-module pipeline tests
   e2e/                 # Playwright browser tests
   fixtures/            # WAV files, pre-computed feature vectors
+  helpers/             # setupTests.ts (global mocks), audioMocks.ts (factories)
 ```

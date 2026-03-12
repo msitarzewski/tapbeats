@@ -84,3 +84,30 @@ Final QA, deployment setup, launch preparation, and public release. Ship TapBeat
 - `testing-strategy.md` — Section 10 (Manual QA checklist)
 - `developer-experience.md` — Section 6 (Development workflow)
 - `product-requirements.md` — All NFRs verified
+
+## Implementation Notes from M1
+
+### Infrastructure Already in Place
+- GitHub Actions CI/CD: `ci.yml` (lint + typecheck + unit + build on PR), `e2e.yml` (Playwright 3-browser matrix on push to main)
+- `CONTRIBUTING.md` exists with dev commands, code style, PR process, testing requirements
+- `LICENSE` exists as placeholder ("TBD — all rights reserved")
+- `.gitignore` configured (node_modules, dist, coverage, test-results, env files, editor configs)
+- Build produces clean output to `dist/` — ready for static hosting
+
+### Deployment Notes
+- Dev server: HTTP on port 8087 — **production must use HTTPS**
+- COOP/COEP headers in `vite.config.ts` are dev-server only — must configure on hosting platform too
+- Vite build target is ES2022 — verify hosting platform serves correct MIME types
+- Vendor chunk splitting already configured (React/ReactDOM/Zustand separate from app code)
+
+### Open Source Readiness Baseline
+- All samples must be CC0/public domain (Milestone 5)
+- No hardcoded secrets in codebase (verified at M1)
+- ESLint `no-console` rule prevents accidental debug logging (warnings only for `console.warn/error`)
+- `npm run build` produces reproducible output
+
+### Documentation Gaps to Fill
+- README.md exists but needs screenshots/GIFs after UI is built
+- No CODE_OF_CONDUCT.md yet — create during M10
+- No CHANGELOG.md yet — create during M10
+- No GitHub Issues templates yet — create during M10

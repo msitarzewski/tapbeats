@@ -85,3 +85,25 @@ Implement the quantization engine that takes messy human timing and snaps it to 
 - `product-requirements.md` — FR-037 through FR-044
 - `audio-engineering.md` — Section 5 (Quantization algorithm)
 - `technical-architecture.md` — Section 6 (Quantization engine)
+
+## Implementation Notes from M1
+
+### Infrastructure Already in Place
+- Quantization engine goes in `src/audio/quantization/` (directory exists)
+- Slider component available for strength control (0-100%), BPM adjustment
+- Button component (3 variants) for grid resolution selector, before/after toggle
+- Zustand store pattern established — extend or create new slice in `src/state/`
+- Vitest benchmarks can validate < 200ms recalculation budget
+
+### TypeScript/Lint Rules to Watch
+- `verbatimModuleSyntax`: use `import type` for type-only imports
+- `strict-boolean-expressions`: no truthy checks — explicit comparisons required
+- `noUncheckedIndexedAccess`: histogram bin access returns `T | undefined` — must narrow
+- `restrict-template-expressions`: `String()` wrap numbers (e.g., BPM display)
+- Import ordering: blank lines between groups
+- Web Worker files: may need ESLint override similar to AudioWorklet override if using separate `.ts` worker files
+
+### Performance Notes
+- Vitest `pool: 'forks'` gives isolated test processes — good for CPU-intensive benchmarks
+- Coverage thresholds at 80% — quantization math will be measured
+- Vite build target is ES2022 — can use modern JS features freely

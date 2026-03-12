@@ -4,7 +4,7 @@
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Vite dev server with HTTPS + HMR (https://localhost:5173) |
+| `npm run dev` | Vite dev server at `http://localhost:8087` (no SSL) |
 | `npm run build` | Production build to `dist/` (runs typecheck first) |
 | `npm run preview` | Preview production build locally |
 | `npm run typecheck` | `tsc --noEmit` type checking |
@@ -17,18 +17,28 @@
 | `npm run test:e2e` | Playwright headless, all browsers |
 | `npm run test:e2e:ui` | Playwright interactive UI mode |
 
-## Build Tool: Vite 5.x
+## Build Tool: Vite 6
 
 **Config**: `vite.config.ts`
 
 Key configuration points:
-- **HTTPS dev server**: `@vitejs/plugin-basic-ssl` for self-signed cert (required for `getUserMedia`)
+- **HTTP dev server on port 8087**: No SSL — `@vitejs/plugin-basic-ssl` removed. `getUserMedia` works on localhost without HTTPS in all major browsers. Production deployment must use HTTPS.
 - **Path aliases**: `@/*` maps to `./src/*` (via `resolve.alias` + `tsconfig.json` paths)
 - **AudioWorklet bundling**: Worklet files in `public/worklets/` are served as-is (not bundled). Worklets cannot be HMR'd -- changes require full page reload.
 - **COOP/COEP headers**: `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` for SharedArrayBuffer support
 - **Vendor chunk splitting**: `react`, `react-dom`, `zustand` in separate vendor chunk for long-term caching
 - **`__DEV__` flag**: Strips DevTools middleware and debug logging in production via `define`
 - **Build target**: ES2022, sourcemaps enabled
+
+## Current Build Output (M1 baseline)
+
+| Asset | Size | Gzipped |
+|-------|------|---------|
+| `index.html` | 0.95 KB | 0.49 KB |
+| `index-*.css` | 2.99 KB | 1.28 KB |
+| `index-*.js` (app) | 20.20 KB | 7.42 KB |
+| `vendor-*.js` (React/Zustand) | 142.20 KB | 45.66 KB |
+| **Total** | **166 KB** | **55 KB** |
 
 ## CI/CD Pipeline: GitHub Actions
 
@@ -39,16 +49,21 @@ Key configuration points:
 ### PR Checks (every push)
 1. **lint-typecheck** job: `npm run lint` + `npm run typecheck` (5 min timeout)
 2. **unit-integration** job: Vitest with coverage, upload coverage artifact (10 min timeout)
-3. **accessibility** job: Playwright axe-core tests on Chromium (10 min timeout)
+3. **build** job: `npm run build` verifies production build (5 min timeout)
 
 ### Main Branch (push to main)
 4. **e2e** job: Playwright across Chromium, Firefox, WebKit matrix (30 min timeout, fail-fast: false)
-5. **performance** job: Vitest benchmarks + Lighthouse CI (15 min timeout)
 
-### Release Suite (tagged versions `v*`)
-6. **release-tests** job: Full test suite + coverage + all Playwright browsers + audio benchmarks + BrowserStack cross-browser (45 min timeout)
+All jobs use Node 20 with npm cache.
 
-All jobs use Node 20 with npm cache. Playwright browsers are cached.
+## TypeScript Configuration
+
+Three tsconfig files:
+- **`tsconfig.json`**: Main config — strict mode, all extra flags, includes `src/` only, excludes `tests/`
+- **`tsconfig.test.json`**: Extends main — includes `src/` + `tests/`, excludes `node_modules` + `dist`, relaxed `noUnusedLocals`/`noUnusedParameters`
+- **`tsconfig.node.json`**: For config files — `vite.config.ts`, `vitest.config.ts`, `playwright.config.ts`
+
+ESLint uses `tsconfig.json` for src files and `tsconfig.test.json` for test files (via override in `.eslintrc.cjs`).
 
 ## Pre-commit Hooks
 
@@ -59,7 +74,7 @@ All jobs use Node 20 with npm cache. Playwright browsers are cached.
 - `tests/**/*.{ts,tsx}`: ESLint fix + Prettier write
 - `src/**/*.css`: Prettier write
 
-Typecheck also runs as part of the pre-commit hook. Do not bypass with `--no-verify`.
+Do not bypass with `--no-verify`.
 
 ## Deployment Target
 
@@ -72,32 +87,22 @@ Production build outputs to `dist/`:
 - Vendor chunk split for long-term caching
 - Source maps generated (do not deploy unless needed for error monitoring)
 
-**Required headers for deployment**: COOP and COEP headers for SharedArrayBuffer support (same as dev server config).
-
-## PWA Configuration
-
-- **Service worker**: Registered in `src/main.tsx`
-- **Manifest**: `public/manifest.json` -- app name, icons, theme color, standalone display
-- **Offline caching strategy**: Cache app shell and audio worklet files. Instrument samples cached on first load. IndexedDB sessions available offline.
+**Required headers for deployment**: COOP and COEP headers for SharedArrayBuffer support. HTTPS required for `getUserMedia` and service workers.
 
 ## Bundle Budget
 
 | Category | Budget |
 |----------|--------|
 | Application code (`src/`) | < 80KB gzipped |
-| Framework + runtime deps (React, Zustand, nanoid, idb-keyval) | < 50KB gzipped |
+| Framework + runtime deps (React, Zustand) | < 50KB gzipped |
 | Total JavaScript (excl. samples) | < 130KB gzipped |
 | CSS | < 10KB gzipped |
 | **Total initial page load (excl. samples)** | **< 200KB gzipped** |
 | Instrument samples (lazy-loaded) | < 2MB total |
-
-Bundle size validated in CI via `vite build` output size checks. PRs exceeding any budget are blocked.
-
-Tree-shaking verification: `__DEV__`-gated code removed in production. Core audio algorithms total < 15KB minified (FFT, onset detection, k-means, MFCC).
 
 ## Environment
 
 - **Node**: 20 LTS+ (required for native ESM support in tooling)
 - **Package manager**: npm
 - **Browser requirements**: AudioWorklet support (Chrome 66+, Firefox 76+, Safari 14.1+)
-- **HTTPS required**: Microphone access (`getUserMedia`) requires secure context
+- **HTTPS required**: In production only. Localhost works without HTTPS for getUserMedia.

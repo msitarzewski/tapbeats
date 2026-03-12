@@ -15,12 +15,30 @@
 - Created project README.md
 - Initialized git repository, first commit
 
+### 2026-03-12: Milestone 1 -- Project Scaffolding & Infrastructure
+- **Branch**: `milestone-1/scaffolding`, commit `34680be`
+- Vite 6 + React 18 + TypeScript 5.7 (strict mode, all extra flags)
+- Full directory structure (58 files, 10,684 lines)
+- CSS design system: 40+ custom properties in `theme.css` (canonical from `ui-design.md` Appendix A)
+- Shared components: Button (3 variants x 3 sizes), Slider, Card, Modal — all CSS modules
+- React Router with 5 screen shells (Home, Record, Review, Timeline, Settings)
+- ESLint (strict-type-checked) + Prettier + Husky + lint-staged
+- Vitest (jsdom, V8 coverage, 80% thresholds) + Playwright (5 browser projects)
+- GitHub Actions CI/CD (`ci.yml` + `e2e.yml`)
+- CONTRIBUTING.md + LICENSE placeholder
+- Production build: 166KB total, 54KB gzipped
+- **Key changes from spec**: Port 8087 (not 5173), no SSL (removed basicSsl plugin), Appendix A tokens canonical
+- **Lessons applied**: All 9 remaining milestones updated with TypeScript/lint gotchas and infrastructure notes
+- Pattern: 3-agent parallel execution (orchestrator + frontend agent + DevOps agent)
+- See: [releases/mvp/milestone-1-project-scaffolding.md](../../../releases/mvp/milestone-1-project-scaffolding.md)
+
 ## In Progress
 
-- None -- ready for Milestone 1
+- None
 
 ## Priorities for Next Session
 
-1. Begin Milestone 1: Project Scaffolding & Infrastructure
-2. Decide on open source license
-3. Create GitHub repository (remote)
+1. Review and merge `milestone-1/scaffolding` to main
+2. Begin Milestone 2: Audio Capture & Microphone Pipeline
+3. Decide on open source license
+4. Create GitHub repository (remote)

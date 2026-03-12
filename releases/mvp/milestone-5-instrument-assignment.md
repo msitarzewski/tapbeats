@@ -87,3 +87,26 @@ Build the sample library and instrument assignment flow. Users browse available 
 - `audio-engineering.md` — Sections 6-7 (Playback architecture, Sample library)
 - `technical-architecture.md` — Section 7 (Playback engine)
 - `ui-design.md` — Cluster review / instrument assignment screen
+
+## Implementation Notes from M1
+
+### Infrastructure Already in Place
+- Sample files go in `src/assets/samples/` (directory exists) or `public/` for runtime loading
+- Playback engine module goes in `src/audio/playback/` (directory exists)
+- Modal component available for instrument browser (responsive bottom sheet on mobile, centered on desktop)
+- Card and Button components ready for instrument grid UI
+- Web Audio mocks in `tests/helpers/` — extend with `AudioBufferSourceNode` mocks for sample playback testing
+- Cluster colors `--cluster-0` through `--cluster-7` defined in theme
+
+### TypeScript/Lint Rules to Watch
+- `verbatimModuleSyntax`: use `import type` for type-only imports
+- `strict-boolean-expressions`: no truthy checks — `if (sample !== undefined)` not `if (sample)`
+- `noUncheckedIndexedAccess`: map/array lookups return `T | undefined`
+- Import ordering: blank lines between groups, CSS modules before type imports
+- Async mocks: use `return Promise.resolve()` not `async`
+
+### Sample Bundle Considerations
+- No SSL locally — dev server is `http://localhost:8087`
+- Vite serves `public/` directory as-is — samples here are not processed by bundler
+- `src/assets/` files are processed by Vite (hashed filenames, tree-shaken)
+- Choose `public/` for runtime-loaded samples, `src/assets/` for import-time samples

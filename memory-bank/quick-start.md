@@ -21,43 +21,58 @@ Record -> Detect -> Cluster -> Assign -> Quantize -> Play
 
 | Layer | Technology |
 |-------|------------|
-| Framework | React 18 + TypeScript 5.4+ |
-| Build | Vite 5+ |
-| State | Zustand 4+ |
+| Framework | React 18 + TypeScript 5.7 (strict) |
+| Build | Vite 6 |
+| State | Zustand 5 |
 | Audio | Web Audio API + AudioWorklet |
-| Storage | IndexedDB via `idb` 8+ |
+| Storage | IndexedDB (planned) |
 | Timeline | HTML5 Canvas 2D (60fps) |
-| Testing | Vitest 1+ (unit) + Playwright (E2E) |
-| Styling | CSS Modules |
-| Linting | ESLint + Prettier |
+| Testing | Vitest 2.1 (unit) + Playwright 1.49 (E2E) |
+| Styling | CSS Modules + CSS custom properties |
+| Linting | ESLint 8 (strict-type-checked) + Prettier 3 |
 | CI/CD | GitHub Actions |
+
+## Dev Commands
+
+```bash
+npm run dev         # Vite dev server at http://localhost:8087
+npm run build       # tsc --noEmit + vite build to dist/
+npm run preview     # Preview production build
+npm run typecheck   # tsc --noEmit
+npm run lint        # ESLint on src + tests
+npm run lint:fix    # ESLint with auto-fix
+npm run format      # Prettier on all files
+npm run test        # Vitest in watch mode
+npm run test:run    # Vitest single run
+npm run test:coverage # Vitest with V8 coverage
+npm run test:e2e    # Playwright headless
+```
 
 ## Key Directories
 
 ```
 src/audio/          -- Core audio engine (capture, analysis, clustering, quantization, playback)
 src/components/     -- React components (app/, recording/, clustering/, timeline/, session/, shared/)
-src/state/          -- Zustand stores (app, recording, cluster, timeline, session) + middleware
-src/types/          -- TypeScript type definitions (audio, clustering, timeline, session)
-src/utils/          -- Shared utilities (id, time, math, arrayBuffer, platform, constants)
-public/worklets/    -- AudioWorklet processor files (run on audio thread)
+src/state/          -- Zustand stores + middleware
+src/types/          -- TypeScript type definitions
+src/utils/          -- Shared utilities
+src/styles/         -- CSS design system (theme.css, global.css, animations.css)
+src/hooks/          -- Custom React hooks
+src/assets/samples/ -- Built-in instrument samples
+public/worklets/    -- AudioWorklet processor files (served as static JS)
+tests/unit/         -- Vitest unit tests (mirrors src/)
+tests/integration/  -- Vitest integration tests
+tests/e2e/          -- Playwright browser tests
+tests/helpers/      -- Test utilities (setupTests.ts, audioMocks.ts)
+tests/fixtures/     -- Test fixtures (WAV files, etc.)
 docs/               -- PRD and 8 section documents
 releases/mvp/       -- MVP release plan with 10 milestone docs
 memory-bank/        -- AI session context and project history
 ```
 
-## Dev Commands
-
-```bash
-npm run dev         # Start Vite dev server with HMR
-npm test            # Run Vitest unit tests
-npm run build       # Production build
-npm run lint        # ESLint + Prettier check
-```
-
 ## Current Phase
 
-Planning phase complete. Full PRD (17,500+ lines across 8 section docs) and MVP release plan (10 milestones, 12 weeks) finalized. Implementation not yet started. **Next: Milestone 1 (Project Scaffolding).**
+Milestone 1 (Project Scaffolding) **complete** on branch `milestone-1/scaffolding`. **Next: Milestone 2 (Audio Capture).**
 
 ## Key Files
 
@@ -70,7 +85,20 @@ Planning phase complete. Full PRD (17,500+ lines across 8 section docs) and MVP 
 | `docs/sections/ui-design.md` | Design system, wireframes, component inventory |
 | `docs/sections/testing-strategy.md` | Test pyramid, CI/CD, quality gates |
 | `releases/mvp/README.md` | MVP milestone tracker and risk register |
-| `releases/mvp/milestone-1-project-scaffolding.md` | First milestone details |
+| `src/styles/theme.css` | All 40+ CSS custom properties (canonical design tokens) |
+
+## TypeScript Strict Mode Gotchas
+
+These rules are enforced and cause the most friction:
+
+| Rule | Impact |
+|------|--------|
+| `verbatimModuleSyntax` | Must use `import type { Foo }` for type-only imports |
+| `strict-boolean-expressions` | No `if (x)` — use `if (x !== undefined)` |
+| `noUncheckedIndexedAccess` | Array/object index returns `T \| undefined` |
+| `exactOptionalPropertyTypes` | Cannot assign `undefined` to optional props |
+| `restrict-template-expressions` | `String()` wrap numbers in template literals |
+| `import/order` (ESLint) | Blank lines between groups, CSS modules before type imports |
 
 ## Common Patterns
 
@@ -78,5 +106,6 @@ Planning phase complete. Full PRD (17,500+ lines across 8 section docs) and MVP 
 - **AudioWorklet communication**: Main thread sends config via `port.postMessage()`, worklet posts onset events back. Worklet files live in `public/worklets/`.
 - **Canvas rendering**: Timeline grid and hit markers render via Canvas 2D at 60fps. Playback cursor animated with `requestAnimationFrame`.
 - **Pure-JS DSP**: FFT, MFCC, spectral analysis all in TypeScript -- no native deps, no WASM for v1.
-- **CSS Modules**: Component-scoped styles. Design tokens defined as CSS custom properties.
+- **CSS Modules**: Component-scoped styles. Design tokens defined as CSS custom properties in `theme.css`.
 - **Error boundaries**: Global `ErrorBoundary.tsx` wraps the app with recovery UI.
+- **Shared components**: Button (primary/secondary/ghost x sm/md/lg), Slider, Card (with selected state), Modal (responsive bottom sheet / centered overlay).

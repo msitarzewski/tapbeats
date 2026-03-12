@@ -2,12 +2,17 @@
 
 ## Language & Type Safety
 
-- TypeScript 5.4+ with `strict: true` in `tsconfig.json`.
-- Additional strict flags: `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitReturns`, `noFallthroughCasesInSwitch`, `forceConsistentCasingInFileNames`, `noUnusedLocals`, `noUnusedParameters`.
+- TypeScript 5.7 with `strict: true` in `tsconfig.json`.
+- Additional strict flags: `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitReturns`, `noFallthroughCasesInSwitch`, `forceConsistentCasingInFileNames`, `noUnusedLocals`, `noUnusedParameters`, `verbatimModuleSyntax`.
 - `any` is forbidden in `src/audio/`. Use `unknown` with type narrowing.
 - `as` type assertions forbidden except in test files. Use type guards instead.
 - Non-null assertion (`!`) is forbidden. Handle `null`/`undefined` explicitly.
 - Prefer string/number union types over enums: `type Subdivision = 1 | 2 | 4 | 8 | 16`.
+- `verbatimModuleSyntax` is enabled: **must** use `import type { X }` for type-only imports.
+- `strict-boolean-expressions` is enabled: no `if (x)` for non-boolean types — use `if (x !== undefined)`.
+- `restrict-template-expressions`: wrap numbers in `String()` inside template literals.
+- `noUncheckedIndexedAccess`: array/object index access returns `T | undefined` — must narrow before use.
+- `exactOptionalPropertyTypes`: cannot assign `undefined` to optional properties — omit the key instead.
 
 ## Naming Conventions
 
@@ -37,11 +42,16 @@
 
 ## Import Ordering
 
-Enforced by ESLint `import/order`. Blank line between each group. Type-only imports use `import type`.
+Enforced by ESLint `import/order` with `newlines-between: 'always'` and `alphabetize: { order: 'asc' }`. **Must have blank line between each group.** Type-only imports use `import type` (required by `verbatimModuleSyntax`).
 
-1. External packages (`react`, `zustand`)
+Groups in order:
+1. External packages (`react`, `zustand`, `react-router-dom`)
 2. Internal absolute imports (`@/types/audio`, `@/utils/math`)
-3. Relative imports (`./OnsetDetector`)
+3. Parent imports (`../recording/RecordingScreen`)
+4. Sibling imports (`./AppShell`, `./Button.module.css`)
+5. Type imports (`import type { ReactNode } from 'react'`)
+
+**Important**: CSS module imports (sibling group) must come **before** `import type` lines. The `import/order` rule enforces this strictly.
 
 ## Error Handling
 

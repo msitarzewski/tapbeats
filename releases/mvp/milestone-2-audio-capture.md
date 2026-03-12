@@ -72,3 +72,26 @@ Implement the complete audio capture pipeline — from microphone permission req
 - `audio-engineering.md` — Section 1 (Web Audio API), Section 8 (Performance)
 - `technical-architecture.md` — Sections 1-2 (System overview, Audio pipeline)
 - `ui-design.md` — Recording screen design
+
+## Implementation Notes from M1
+
+### Infrastructure Already in Place
+- Dev server: `http://localhost:8087` (no SSL — `getUserMedia` works on localhost without HTTPS)
+- Web Audio mocks: `tests/helpers/setupTests.ts` provides global `AudioContext` and `MediaStream` mocks; `tests/helpers/audioMocks.ts` has `createMockAudioContext()` and `createMockMediaStream()` factories for per-test control
+- AudioWorklet files go in `public/worklets/` (directory exists with `.gitkeep`); ESLint has a dedicated override for `public/worklets/**/*.js` with relaxed rules and AudioWorklet globals (`AudioWorkletProcessor`, `registerProcessor`, `sampleRate`, `currentFrame`, `currentTime`)
+- Ambient type declarations for `AudioWorkletProcessor` and `registerProcessor` are in `src/types/global.d.ts`
+- `recordingStore` Zustand slice goes in `src/state/` (directory exists)
+- Recording screen stub exists at `src/components/recording/RecordingScreen.tsx` — extend it
+
+### TypeScript/Lint Rules to Watch
+- `verbatimModuleSyntax`: use `import type` for type-only imports
+- `strict-boolean-expressions`: cannot do `if (stream)` — use `if (stream !== null)`
+- `noUncheckedIndexedAccess`: array access returns `T | undefined`
+- `restrict-template-expressions`: wrap numbers in `String()` in template literals
+- Async mocks: use `return Promise.resolve()` not `async () => {}`
+- Import ordering: blank lines between groups, CSS modules before `import type`
+- Test files use `tsconfig.test.json` (includes `tests/` dir, relaxed `noUnusedLocals`)
+
+### Cross-Browser Note
+- Removed `@vitejs/plugin-basic-ssl` — no HTTPS locally. `getUserMedia` requires HTTPS in production but works on `localhost` in Chrome/Firefox/Edge. Safari may need special handling — test early.
+- iOS Safari: AudioContext must be created/resumed inside a user gesture handler. Plan the permission flow accordingly.

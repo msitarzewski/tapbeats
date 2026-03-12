@@ -99,3 +99,31 @@ Build the DAW-style timeline view and the full playback engine. This is the "big
 - `audio-engineering.md` — Section 6 (Sample playback architecture)
 - `technical-architecture.md` — Section 7 (Playback engine)
 - `ui-design.md` — Timeline/arrangement screen
+
+## Implementation Notes from M1
+
+### Infrastructure Already in Place
+- Timeline screen stub at `src/components/timeline/TimelineScreen.tsx` — extend it
+- Slider component for volume controls, Button for transport controls
+- CSS transitions defined in theme: `--ease-micro` (100ms), `--ease-state` (250ms), `--ease-spring` (300ms), `--ease-slow` (500ms)
+- Animation keyframes in `src/styles/animations.css`
+- Web Audio mocks in `tests/helpers/` — extend with scheduling/timing mocks
+- Playback engine goes in `src/audio/playback/` (directory exists)
+
+### TypeScript/Lint Rules to Watch
+- `verbatimModuleSyntax`: use `import type` for type-only imports
+- `strict-boolean-expressions`: `if (isPlaying)` won't work if it's `boolean | undefined` — must be explicit
+- `noUncheckedIndexedAccess`: track array access returns `T | undefined`
+- `restrict-template-expressions`: `String()` wrap for numbers in template literals (beat numbers, time displays)
+- Import ordering: blank lines between groups, CSS modules before type imports
+- Canvas rendering code won't be caught by React-focused lint rules but TypeScript strict mode still applies
+
+### Performance Considerations
+- Canvas rendering at 60fps — `requestAnimationFrame` loop won't trigger React re-renders (good)
+- Lookahead scheduler uses `setInterval` + `AudioContext.currentTime` — test with mock timing
+- Playwright E2E config has 5 browser projects ready (Chromium, Firefox, WebKit, mobile Chrome, mobile Safari)
+- Dev server is HTTP on port 8087 — no SSL overhead for local perf testing
+
+### Keyboard Shortcuts Note
+- No keyboard event handling infrastructure exists yet — build from scratch
+- Consider a custom hook (`useKeyboardShortcuts`) in `src/hooks/`

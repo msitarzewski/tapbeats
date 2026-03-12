@@ -1,15 +1,10 @@
 import { resolve } from 'path';
 
 import react from '@vitejs/plugin-react';
-import basicSsl from '@vitejs/plugin-basic-ssl';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  plugins: [
-    react(),
-    // Self-signed HTTPS cert for local dev (required for getUserMedia)
-    basicSsl(),
-  ],
+  plugins: [react()],
 
   resolve: {
     alias: {
@@ -18,7 +13,7 @@ export default defineConfig({
   },
 
   server: {
-    port: 5173,
+    port: 8087,
     // Required headers for SharedArrayBuffer support (used by AudioWorklet
     // ring buffers when available, with fallback for browsers that do not
     // support cross-origin isolation).

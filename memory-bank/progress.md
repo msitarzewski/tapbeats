@@ -2,7 +2,7 @@
 
 ## Overall Status
 
-**Phase**: Planning complete. Implementation not started.
+**Phase**: Milestone 1 complete. Ready for Milestone 2.
 **Target**: 12-week MVP delivery
 **Last Updated**: 2026-03-12
 
@@ -27,24 +27,36 @@
 - Risk register with mitigations
 - Success metrics defined
 
-### Project Infrastructure
-- Git repository initialized
-- Memory bank initialization in progress
-- Directory structure for docs and releases established
+### Milestone 1: Project Scaffolding & Infrastructure (2026-03-12)
+- **Branch**: `milestone-1/scaffolding`, commit `34680be`
+- Vite 6 + React 18 + TypeScript 5.7 (strict mode, all extra flags)
+- Full directory structure per developer-experience.md
+- CSS design system: 40+ custom properties in `theme.css` (dark theme, per `ui-design.md` Appendix A)
+- Typography: Inter (UI) + JetBrains Mono (code) via Google Fonts
+- Shared components: Button (3 variants x 3 sizes), Slider, Card, Modal — all CSS modules
+- React Router with 5 screen shells (Home, Record, Review, Timeline, Settings)
+- ESLint (strict-type-checked) + Prettier + Husky + lint-staged
+- Vitest (jsdom, V8 coverage, 80% thresholds) + Playwright (5 browser projects)
+- Web Audio API test mocks (`setupTests.ts` + `audioMocks.ts` factories)
+- GitHub Actions CI/CD (`ci.yml` + `e2e.yml`)
+- CONTRIBUTING.md + LICENSE placeholder
+- Production build: 166KB total, 54KB gzipped
+- All milestones updated with M1 lessons learned
 
 ---
 
 ## Current Focus
 
-Ready to begin **Milestone 1: Project Scaffolding & Infrastructure** (Week 1).
+**Milestone 2: Audio Capture & Microphone Pipeline** (Week 2)
 
-Milestone 1 deliverables:
-- Vite + React + TypeScript project setup
-- CI/CD pipeline (GitHub Actions)
-- App shell with screen routing
-- Design system CSS foundation (tokens, dark/light theme)
-- ESLint + Prettier configuration
-- Vitest setup with initial test infrastructure
+Deliverables:
+- Microphone permission flow with error handling
+- AudioContext + MediaStream setup
+- AudioWorklet capture processor
+- Ring buffer for audio data transfer
+- Recording UI (live waveform, level meter, timer, stop button)
+- `recordingStore` Zustand slice
+- Auto-stop at 2-minute limit
 
 ---
 
@@ -52,9 +64,9 @@ Milestone 1 deliverables:
 
 | Priority | Item | Reference |
 |----------|------|-----------|
-| 1 | Milestone 1: Project Scaffolding | `releases/mvp/milestone-1-project-scaffolding.md` |
-| 2 | Milestone 2: Audio Capture | `releases/mvp/milestone-2-audio-capture.md` |
-| 3 | Milestone 3: Onset Detection | `releases/mvp/milestone-3-onset-detection.md` |
+| 1 | Milestone 2: Audio Capture | `releases/mvp/milestone-2-audio-capture.md` |
+| 2 | Milestone 3: Onset Detection | `releases/mvp/milestone-3-onset-detection.md` |
+| 3 | Milestone 4: Clustering | `releases/mvp/milestone-4-clustering.md` |
 
 ---
 
@@ -77,3 +89,5 @@ None.
 | Pure-JS DSP (no WASM) | No native dependencies, simpler build, sufficient for v1 |
 | CSS Modules | Component-scoped styles, avoids runtime CSS-in-JS overhead |
 | Vitest + Playwright | Fast unit tests + cross-browser E2E coverage |
+| Port 8087, no SSL | localhost doesn't need HTTPS; simplifies dev setup |
+| Appendix A tokens canonical | `--bg-primary: #121214`, `--accent-primary: #FF6B3D` — not older spec names |

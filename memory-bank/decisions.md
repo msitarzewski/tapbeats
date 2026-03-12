@@ -12,6 +12,9 @@
 8. ["Fix it in post" UX model](#2026-03-12-fix-it-in-post-ux-model)
 9. [IndexedDB for persistence](#2026-03-12-indexeddb-for-persistence)
 10. [OGG primary, MP3 fallback](#2026-03-12-ogg-primary-mp3-fallback)
+11. [No SSL for local development](#2026-03-12-no-ssl-for-local-development)
+12. [Appendix A as canonical design tokens](#2026-03-12-appendix-a-as-canonical-design-tokens)
+13. [Separate tsconfig for tests](#2026-03-12-separate-tsconfig-for-tests)
 
 ---
 
@@ -84,3 +87,27 @@
 **Decision**: Ship samples in dual format: OGG Vorbis as primary (smaller files, open format, supported by Chrome/Firefox/Edge) with MP3 fallback for Safari (which does not support OGG). Runtime detection via `audio.canPlayType('audio/ogg; codecs=vorbis')`. Samples are lazy-loaded on demand, total budget <2MB across all categories.
 **Alternatives**: WAV only (rejected: 10x larger files, defeats lazy-loading benefit); MP3 only (rejected: slightly larger than OGG at equivalent quality, licensing historically murky though now patent-free); Opus (rejected: not supported in Safari, would still need MP3 fallback); AAC (rejected: licensing complexity, OGG is open and free).
 **Consequences**: (+) Small file sizes, open format where possible, universal browser coverage with fallback. (-) Must maintain two versions of every sample, slightly more complex build pipeline, runtime format detection needed.
+
+### 2026-03-12: No SSL for local development
+**Status**: Approved
+**Context**: The original spec called for `@vitejs/plugin-basic-ssl` to enable HTTPS locally, since `getUserMedia` requires a secure context. However, all major browsers treat `localhost` as a secure context without HTTPS.
+**Decision**: Remove `@vitejs/plugin-basic-ssl`. Dev server runs plain HTTP on port 8087. Production deployment must use HTTPS.
+**Alternatives**: Keep self-signed SSL (rejected: causes browser certificate warnings, complicates Playwright testing, unnecessary since localhost is treated as secure).
+**Consequences**: (+) Simpler dev setup, no certificate warnings, cleaner Playwright config. (-) Must remember HTTPS is required in production for `getUserMedia` and service workers.
+**References**: `releases/mvp/milestone-1-project-scaffolding.md`
+
+### 2026-03-12: Appendix A as canonical design tokens
+**Status**: Approved
+**Context**: The milestone-1 spec listed older CSS token names (`--surface-base: #0A0A0F`, `--accent-primary: #6C5CE7`). The `ui-design.md` Appendix A uses different, final names (`--bg-primary: #121214`, `--accent-primary: #FF6B3D`).
+**Decision**: `ui-design.md` Appendix A is the single source of truth for CSS custom property names and values. All 40+ tokens are implemented in `src/styles/theme.css` using Appendix A naming.
+**Alternatives**: Use milestone-1 spec names (rejected: Appendix A is newer, more complete, and explicitly labeled as "Complete Reference").
+**Consequences**: (+) Single canonical source, consistent naming across all milestones. (-) Milestone-1 spec section 1.6 is now inaccurate (documented in M1 implementation notes).
+**References**: `src/styles/theme.css`, `docs/sections/ui-design.md` lines 1503-1591
+
+### 2026-03-12: Separate tsconfig for tests
+**Status**: Approved
+**Context**: Main `tsconfig.json` excludes `tests/` to keep production builds clean. But ESLint with `@typescript-eslint/parser` requires a tsconfig that includes the files being linted. Test files were failing ESLint parsing.
+**Decision**: Create `tsconfig.test.json` extending `tsconfig.json` with `include: ["src/**", "tests/**"]` and `exclude: ["node_modules", "dist"]`. ESLint `.eslintrc.cjs` has an override for `tests/**` pointing `parserOptions.project` to `tsconfig.test.json`. Test tsconfig also relaxes `noUnusedLocals` and `noUnusedParameters`.
+**Alternatives**: Include tests in main tsconfig (rejected: would affect production build, risks including test code in bundle); ignore ESLint for test files (rejected: loses type-checked linting).
+**Consequences**: (+) Full type-checked linting for test files, clean production tsconfig. (-) One more config file to maintain.
+**References**: `tsconfig.test.json`, `.eslintrc.cjs` override at line 50

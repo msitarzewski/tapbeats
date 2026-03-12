@@ -80,3 +80,27 @@ After recording stops, automatically group similar-sounding hits into clusters u
 - `audio-engineering.md` — Section 4 (Sound clustering)
 - `technical-architecture.md` — Section 5 (Clustering)
 - `ui-design.md` — Cluster review screen
+
+## Implementation Notes from M1
+
+### Infrastructure Already in Place
+- Cluster screen stub at `src/components/clustering/ClusterScreen.tsx` — extend it
+- Shared components available: `Button` (3 variants x 3 sizes), `Card` (with selected state), `Modal` (responsive bottom sheet/centered), `Slider`
+- CSS design system: all cluster colors (`--cluster-0` through `--cluster-7`), spacing, radii, transitions in `src/styles/theme.css`
+- Animation keyframes in `src/styles/animations.css` (fadeIn, slideUp, scaleSpring, pulse, shimmer)
+- Clustering algorithm goes in `src/audio/clustering/` (directory exists)
+
+### TypeScript/Lint Rules to Watch
+- `verbatimModuleSyntax`: use `import type` for type-only imports
+- `strict-boolean-expressions`: no truthy checks on arrays/objects — use explicit length/null checks
+- `noUncheckedIndexedAccess`: array index returns `T | undefined` — critical for k-means centroid access
+- `exactOptionalPropertyTypes`: cannot assign `undefined` to optional props — omit key instead
+- `restrict-template-expressions`: `String()` wrap numbers in template literals
+- Import ordering: blank lines between groups, CSS modules before type imports
+
+### Component Patterns Established
+- All components use CSS modules (`.module.css`)
+- Named exports only (no default exports)
+- CSS custom properties from `theme.css` — use `var(--token-name)` not hardcoded values
+- Responsive: mobile-first with `@media (min-width: 640px)` for desktop overrides
+- Card component already has `selected` state and `onClick` with proper ARIA attributes

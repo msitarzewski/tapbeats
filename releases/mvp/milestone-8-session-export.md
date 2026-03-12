@@ -92,3 +92,32 @@ Add persistence — save sessions to IndexedDB so users can return to their beat
 - `product-requirements.md` — FR-056 through FR-072
 - `technical-architecture.md` — Section 8 (State management), Section 9 (Session persistence)
 - `ui-design.md` — Home screen, Settings screen
+
+## Implementation Notes from M1
+
+### Infrastructure Already in Place
+- Home screen stub at `src/components/app/HomeScreen.tsx` — extend for session list
+- Settings screen stub at `src/components/session/SettingsScreen.tsx` — extend
+- Card component for session list items (has selected state, onClick, ARIA)
+- Modal component for delete confirmation dialogs (responsive)
+- Button, Slider components for settings controls
+- Zustand store pattern established in `src/state/`
+- Router already has `/` (Home) and `/settings` routes
+
+### TypeScript/Lint Rules to Watch
+- `verbatimModuleSyntax`: use `import type` for type-only imports
+- `strict-boolean-expressions`: IndexedDB result checks must be explicit (`!== undefined`)
+- `noUncheckedIndexedAccess`: session lookups return `T | undefined`
+- `exactOptionalPropertyTypes`: cannot assign `undefined` to optional session fields — omit key
+- `no-floating-promises`: IndexedDB operations return promises — must `await` or `.catch()`
+- Import ordering: blank lines between groups
+
+### New Dependencies Needed
+- `fake-indexeddb` not in devDependencies yet — add it for IndexedDB unit tests
+- `localStorage` for settings — no special test setup needed (jsdom supports it)
+- WAV export: offline `AudioContext` rendering — extend `createMockAudioContext()` in `tests/helpers/audioMocks.ts`
+
+### Export Considerations
+- Build output goes to `dist/` — already .gitignored
+- WAV files are generated client-side — no server needed
+- Dev server is HTTP on port 8087 — download triggers work without HTTPS

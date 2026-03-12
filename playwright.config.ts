@@ -8,7 +8,7 @@ export default defineConfig({
   workers: process.env['CI'] ? 1 : undefined,
   reporter: process.env['CI'] ? 'github' : 'html',
   use: {
-    baseURL: 'https://localhost:5173',
+    baseURL: 'http://localhost:8087',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     ignoreHTTPSErrors: true,
@@ -23,7 +23,7 @@ export default defineConfig({
   ],
   webServer: {
     command: 'npm run dev',
-    url: 'https://localhost:5173',
+    url: 'http://localhost:8087',
     reuseExistingServer: !process.env['CI'],
     ignoreHTTPSErrors: true,
     timeout: 30_000,

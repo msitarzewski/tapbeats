@@ -115,3 +115,33 @@ Polish the end-to-end experience, add PWA support for offline use and installabi
 - `testing-strategy.md` — Sections 7-10 (Accessibility, Cross-browser, CI/CD, Manual QA)
 - `ui-design.md` — Onboarding, micro-interactions, error states
 - `brand-strategy.md` — First-time user experience
+
+## Implementation Notes from M1
+
+### Infrastructure Already in Place
+- Playwright config has 5 browser projects (Chromium, Firefox, WebKit, mobile Chrome, mobile Safari) — ready for cross-browser E2E
+- GitHub Actions CI runs lint + typecheck + unit tests + build on PR; E2E on push to main
+- CSS `animations.css` has base keyframes (fadeIn, slideUp, scaleSpring, pulse, shimmer) — extend for polish
+- ErrorBoundary exists at `src/components/app/ErrorBoundary.tsx` — extend for error states
+- `.editorconfig` ensures consistent formatting across editors
+
+### SSL / HTTPS Notes
+- Dev server runs HTTP on port 8087 — no `@vitejs/plugin-basic-ssl`
+- **Production deployment MUST use HTTPS** — required for `getUserMedia`, service workers, and PWA install
+- Service worker registration should check `location.protocol === 'https:'` or `location.hostname === 'localhost'`
+- CSP headers: currently only COOP/COEP set in `vite.config.ts` server headers — add CSP for production deployment config
+
+### Accessibility Starting Point
+- Button component already has focus ring (`2px solid var(--border-focus)`)
+- Card component has `role="button"` and `tabIndex` when interactive
+- Modal has `role="dialog"` and `aria-modal="true"`
+- Missing: skip links, landmark regions, screen reader announcements for dynamic content
+
+### Performance Baseline
+- Current production build: ~166KB total, ~54KB gzipped (well under 200KB budget)
+- Vendor chunk (React + ReactDOM + Zustand): 142KB / 46KB gzipped
+- App chunk: 20KB / 7KB gzipped
+- CSS: 3KB / 1.3KB gzipped
+
+### React Router v6 Warnings
+- React Router v6 emits future flag warnings (`v7_startTransition`, `v7_relativeSplatPath`) — address during polish or upgrade to v7

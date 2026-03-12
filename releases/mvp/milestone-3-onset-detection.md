@@ -75,3 +75,29 @@ Implement real-time onset (hit) detection that runs during recording. Every time
 - `product-requirements.md` — FR-012 through FR-018
 - `audio-engineering.md` — Sections 2-3 (Onset detection, Feature extraction)
 - `technical-architecture.md` — Sections 3-4 (Onset detection, Feature extraction)
+
+## Implementation Notes from M1
+
+### Infrastructure Already in Place
+- AudioWorklet processor files go in `public/worklets/*.js` — ESLint override exists with relaxed rules and AudioWorklet globals pre-declared
+- Ambient types for `AudioWorkletProcessor` and `registerProcessor` in `src/types/global.d.ts`
+- Web Audio mocks ready in `tests/helpers/` — extend with onset-specific mock data
+- Feature extraction module goes in `src/audio/analysis/` (directory exists)
+- OnsetDetector module goes in `src/audio/capture/` or `src/audio/analysis/`
+
+### TypeScript/Lint Rules to Watch
+- `verbatimModuleSyntax`: use `import type` for type-only imports
+- `strict-boolean-expressions`: no truthy checks — explicit comparisons required
+- `noUncheckedIndexedAccess`: array index returns `T | undefined` — must narrow
+- `restrict-template-expressions`: `String()` wrap for numbers in template literals
+- Import ordering: blank lines between groups, CSS modules before type imports
+- Test files: `tsconfig.test.json` used via ESLint override, relaxed `any` rules
+
+### Test Fixtures
+- `tests/fixtures/` directory exists with README — place WAV test files here
+- Test audio files with labeled onsets should be committed as fixtures
+- Vitest benchmarks can use `vitest bench` — add `test:bench` script if needed
+
+### Performance Testing
+- Coverage thresholds are 80% — onset detection code will be measured
+- Vitest `pool: 'forks'` provides test isolation — safe for AudioWorklet simulation
