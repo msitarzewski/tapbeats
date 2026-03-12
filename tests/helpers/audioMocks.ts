@@ -1,0 +1,99 @@
+import { vi } from 'vitest';
+
+/**
+ * Factory: create a mock AudioContext-like object for individual test control.
+ *
+ * Use this when you need to spy on or customise AudioContext behaviour beyond
+ * what the global mock in setupTests.ts provides.
+ */
+export function createMockAudioContext() {
+  const gainNode = {
+    gain: { value: 1, setValueAtTime: vi.fn(), linearRampToValueAtTime: vi.fn() },
+    connect: vi.fn().mockReturnThis(),
+    disconnect: vi.fn(),
+  };
+
+  const oscillatorNode = {
+    frequency: { value: 440, setValueAtTime: vi.fn() },
+    type: 'sine' as OscillatorType,
+    connect: vi.fn().mockReturnThis(),
+    disconnect: vi.fn(),
+    start: vi.fn(),
+    stop: vi.fn(),
+  };
+
+  const analyserNode = {
+    fftSize: 2048,
+    frequencyBinCount: 1024,
+    connect: vi.fn().mockReturnThis(),
+    disconnect: vi.fn(),
+    getByteFrequencyData: vi.fn((array: Uint8Array) => {
+      array.fill(0);
+    }),
+    getByteTimeDomainData: vi.fn((array: Uint8Array) => {
+      array.fill(128);
+    }),
+    getFloatFrequencyData: vi.fn((array: Float32Array) => {
+      array.fill(-Infinity);
+    }),
+    getFloatTimeDomainData: vi.fn((array: Float32Array) => {
+      array.fill(0);
+    }),
+  };
+
+  const mediaStreamSourceNode = {
+    connect: vi.fn().mockReturnThis(),
+    disconnect: vi.fn(),
+  };
+
+  let state: AudioContextState = 'running';
+
+  const ctx = {
+    get sampleRate() {
+      return 44100;
+    },
+    get state() {
+      return state;
+    },
+    destination: {} as AudioDestinationNode,
+    createOscillator: vi.fn(() => ({ ...oscillatorNode })),
+    createGain: vi.fn(() => ({ ...gainNode })),
+    createAnalyser: vi.fn(() => ({ ...analyserNode })),
+    createMediaStreamSource: vi.fn(() => ({ ...mediaStreamSourceNode })),
+    resume: vi.fn(() => {
+      state = 'running';
+      return Promise.resolve();
+    }),
+    close: vi.fn(() => {
+      state = 'closed';
+      return Promise.resolve();
+    }),
+    suspend: vi.fn(() => {
+      state = 'suspended';
+      return Promise.resolve();
+    }),
+  };
+
+  return ctx;
+}
+
+/**
+ * Factory: create a mock MediaStream-like object for individual test control.
+ */
+export function createMockMediaStream() {
+  const track = {
+    kind: 'audio' as const,
+    enabled: true,
+    stop: vi.fn(),
+  };
+
+  const stream = {
+    getTracks: vi.fn(() => [track]),
+    getAudioTracks: vi.fn(() => [track]),
+    getVideoTracks: vi.fn(() => []),
+    addTrack: vi.fn(),
+    removeTrack: vi.fn(),
+  };
+
+  return { stream, track };
+}
