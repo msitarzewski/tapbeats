@@ -17,7 +17,7 @@ export const DEFAULT_SETTINGS: SettingsState = {
   audioInputDeviceId: null,
   defaultBpm: 120,
   defaultGridResolution: '1/8',
-  theme: 'dark',
+  theme: 'auto',
   defaultSensitivity: 'medium',
   hasSeenOnboarding: false,
   dismissedTips: [],

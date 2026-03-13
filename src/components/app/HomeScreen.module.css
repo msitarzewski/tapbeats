@@ -24,18 +24,16 @@
   color: var(--text-tertiary);
   text-align: center;
   margin-top: calc(-1 * var(--space-4));
-  animation: staggerSlideUp var(--ease-spring) forwards;
+  animation: staggerSlideUp var(--ease-spring) both;
   animation-delay: 50ms;
-  opacity: 0;
 }
 
 .actions {
   display: flex;
   align-items: center;
   gap: var(--space-4);
-  animation: staggerSlideUp var(--ease-spring) forwards;
+  animation: staggerSlideUp var(--ease-spring) both;
   animation-delay: 100ms;
-  opacity: 0;
 }
 
 .settingsBtn {
@@ -89,9 +87,8 @@
   gap: var(--space-3);
   color: var(--text-tertiary);
   padding: var(--space-8) 0;
-  animation: fadeIn var(--ease-slow) forwards;
+  animation: fadeIn var(--ease-slow) both;
   animation-delay: 200ms;
-  opacity: 0;
 }
 
 .emptyHint {
