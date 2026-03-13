@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 
 import { FeatureExtractor } from '@/audio/analysis/FeatureExtractor';
+import { runClustering } from '@/audio/clustering/pipeline';
+import { useClusterStore } from '@/state/clusterStore';
 import { useRecordingStore } from '@/state/recordingStore';
 import type { AudioFeatures } from '@/types/audio';
 
@@ -32,6 +34,14 @@ export function useProcessing(sampleRate: number): void {
       normalizeFeatures();
     } catch {
       // Feature extraction failed — still complete the recording
+    }
+
+    try {
+      const updatedOnsets = useRecordingStore.getState()._onsets;
+      const clusterOutput = runClustering(updatedOnsets);
+      useClusterStore.getState().setClustering(clusterOutput, updatedOnsets);
+    } catch {
+      // Clustering failed — still complete the recording
     }
 
     setStatus('complete');

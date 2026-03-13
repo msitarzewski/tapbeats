@@ -1,6 +1,14 @@
 import type { SVGAttributes } from 'react';
 
-type IconName = 'mic' | 'mic-off' | 'arrow-left' | 'square' | 'help-circle' | 'record';
+type IconName =
+  | 'mic'
+  | 'mic-off'
+  | 'arrow-left'
+  | 'square'
+  | 'help-circle'
+  | 'record'
+  | 'play'
+  | 'chevron-right';
 
 interface IconProps extends SVGAttributes<SVGElement> {
   readonly name: IconName;
@@ -16,6 +24,8 @@ const PATHS: Record<IconName, string> = {
   'help-circle':
     'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01',
   record: '',
+  play: 'M5 3l14 9-14 9V3z',
+  'chevron-right': 'M9 18l6-6-6-6',
 };
 
 export function Icon({ name, size = 24, className, ...rest }: IconProps) {
@@ -32,6 +42,23 @@ export function Icon({ name, size = 24, className, ...rest }: IconProps) {
         {...rest}
       >
         <circle cx="12" cy="12" r="8" />
+      </svg>
+    );
+  }
+
+  if (name === 'play') {
+    return (
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        stroke="none"
+        className={className}
+        aria-hidden="true"
+        {...rest}
+      >
+        <path d={PATHS[name]} />
       </svg>
     );
   }

@@ -116,6 +116,35 @@ Build the sample library and instrument assignment flow. Users browse available 
 - `src/assets/` files are processed by Vite (hashed filenames, tree-shaken)
 - Choose `public/` for runtime-loaded samples, `src/assets/` for import-time samples
 
+### Lessons from M4 (Clustering)
+
+#### Cluster Store Architecture
+- **`clusterStore` state** (`src/state/clusterStore.ts`): `status`, `clusters: ClusterData[]`, `featureVectors: number[][]`, `normalization`, `assignments: number[]`, `silhouette`, `error`
+- **`ClusterData` fields**: `id`, `hitIndices: number[]`, `centroid: number[]`, `hitCount`, `representativeHitIndex`, `color: string` (CSS var like `var(--cluster-0)`)
+- **M5 needs to extend clusterStore** with instrument assignment fields (e.g., `instrumentAssignments: Map<clusterId, instrumentId>`)
+- **Split/merge operations** in store read hits from `recordingStore.getState()._onsets` for representative hit selection — any new store actions needing hit data should follow same pattern
+
+#### AudioContext Management
+- **`useClusterPlayback.ts`** creates AudioContext lazily on first play, stores in ref, cleans up on unmount
+- **M5's `PlaybackEngine`** should either share this AudioContext or replace `useClusterPlayback` entirely
+- Only one AudioContext should be active at a time (browser limit ~6, iOS Safari limit 1)
+
+#### UI Integration Points
+- **ClusterScreen** (`src/components/clustering/ClusterScreen.tsx`) currently has NO instrument chips — M5 adds these to ClusterCard
+- **ClusterCard** has header (play button, name, hit count) + waveform — instrument chip goes below waveform or in header
+- **Card component** now accepts `style` prop for CSS custom property injection (added in M4)
+- **ActionBar** has default/split/merge modes — Continue button navigates to `/timeline`
+
+#### TypeScript Gotcha: `exactOptionalPropertyTypes`
+- Can't pass `{ rng }` where `rng` might be `undefined` and the interface says `rng?: () => number`
+- Fix: `rng !== undefined ? { rng } : undefined` or spread `...(rng !== undefined ? { rng } : {})`
+- This catches any optional prop pattern — watch for it in instrument config options
+
+#### Test Patterns
+- **Seeded PRNG** (`tests/helpers/clusteringFixtures.ts`): `seededRng(seed)` returns deterministic `() => number`. Use for any algorithm with random init.
+- **Test invariants not exact assignments**: K-means is non-deterministic without seeding. Test: "same-group points share labels", "correct k", "silhouette > threshold".
+- **`createMockDetectedHits(featureGroups)`**: Creates DetectedHit[] with proper AudioFeatures from 12-dim vectors. Reuse in M5 tests.
+
 ### Lessons from M3 (Onset Detection)
 
 #### React Patterns

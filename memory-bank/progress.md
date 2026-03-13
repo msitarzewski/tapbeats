@@ -2,7 +2,7 @@
 
 ## Overall Status
 
-**Phase**: Milestone 3 complete, ready to commit.
+**Phase**: Milestone 4 complete, ready for browser verification.
 **Target**: 12-week MVP delivery
 **Last Updated**: 2026-03-12
 
@@ -30,12 +30,20 @@
 
 ### Milestone 3: Real-Time Onset Detection (2026-03-12)
 - **Branch**: `milestone-3/onset-detection` (from M2)
-- **Status**: Complete, NOT YET COMMITTED
 - Spectral flux onset detection in AudioWorklet with dual gating (flux threshold + RMS energy)
 - 12-dim feature extraction, Z-score normalization, BPM estimation
 - ProtoTimeline (canvas), SensitivityControl, complete→navigate flow
 - 5 runtime bugs found and fixed via Chrome DevTools debugging
 - 205 tests passing (18 test files), 0 lint errors, production build succeeds (48KB app)
+
+### Milestone 4: Sound Clustering & Cluster Review UI (2026-03-12)
+- **Branch**: `milestone-4/clustering` (from M3)
+- K-means++ clustering with auto-K via silhouette scoring
+- Min-max normalization on full 12-dim feature vectors (complements Z-score from M3)
+- Cluster review screen at `/review`: ClusterCard grid, waveform preview, playback, split/merge
+- ClusterStore Zustand slice, pipeline integration in useProcessing
+- 314 tests passing (27 test files, +109 new), 0 lint errors, production build succeeds (63KB app)
+- Pattern: 3 parallel agents (Algorithm, State/Integration, UI) + separate Test agent
 
 ---
 
@@ -43,9 +51,9 @@
 
 | Priority | Item | Reference |
 |----------|------|-----------|
-| 1 | Commit M3 + merge branches to main | `milestone-3/onset-detection` branch |
-| 2 | Milestone 4: Clustering | `releases/mvp/milestone-4-clustering.md` |
-| 3 | Milestone 5: Instrument Assignment | `releases/mvp/milestone-5-instrument-assignment.md` |
+| 1 | Browser verification of M4 | Record → stop → `/review` → play/split/merge/continue |
+| 2 | Milestone 5: Instrument Assignment | `releases/mvp/milestone-5-instrument-assignment.md` |
+| 3 | Milestone 6: Quantization Engine | `releases/mvp/milestone-6-quantization.md` |
 
 ---
 
@@ -73,3 +81,7 @@ None.
 | Synchronous processing (not setTimeout batches) | React cleanup kills async chains in effects |
 | RMS energy gate + flux threshold 0.5 | Dual gating rejects ambient noise (spectral flux alone insufficient) |
 | Complete status navigates home | M3 has no review screen; M4+ will navigate to /review |
+| Complementary normalization (Z-score + min-max) | Z-score for storage/comparison, min-max rescales to [0,1] for clustering distance |
+| Clustering runs on main thread (not Worker) | <500ms for 200 hits, no complexity of Worker messaging |
+| Silhouette < 0.25 falls back to k=1 | Low silhouette means no natural grouping; better UX to show 1 cluster |
+| Max 12 clusters with auto-merge | UI grid practical limit; auto-merge closest centroids |

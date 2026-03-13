@@ -152,6 +152,13 @@ Polish the end-to-end experience, add PWA support for offline use and installabi
 ### React Router v6 Warnings
 - React Router v6 emits future flag warnings (`v7_startTransition`, `v7_relativeSplatPath`) — address during polish or upgrade to v7
 
+### Lessons from M4 (Clustering)
+
+- **Canvas elements**: ClusterCard uses 48px canvas waveform preview. Ensure accessibility: canvas has `aria-hidden` and is supplemented by text (hit count, cluster name).
+- **CSS custom properties**: ClusterCard injects `--cluster-color` and `--entrance-delay` via inline `style` prop. Verify these work with `prefers-reduced-motion` (entrance animation should be disabled).
+- **AudioContext per play**: `useClusterPlayback` creates one AudioContext — verify iOS Safari handles this correctly (needs user gesture to resume).
+- **Test count at 314+** — full regression suite should run before launch.
+
 ### Lessons from M3 (Onset Detection)
 
 #### React Patterns

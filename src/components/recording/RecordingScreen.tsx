@@ -26,8 +26,7 @@ export function RecordingScreen() {
   // Navigate away when processing completes
   useEffect(() => {
     if (status === 'complete') {
-      // TODO M4+: navigate to /review for clustering
-      navigate('/');
+      navigate('/review');
     }
   }, [status, navigate]);
 

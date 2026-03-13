@@ -112,6 +112,27 @@ Implement the quantization engine that takes messy human timing and snaps it to 
 - Coverage thresholds at 80% — quantization math will be measured
 - Vite build target is ES2022 — can use modern JS features freely
 
+### Lessons from M4 (Clustering)
+
+#### Architecture Patterns to Follow
+- **Pure algorithm functions**: All clustering algorithms (`src/audio/clustering/`) are pure functions with no store access. Quantization engine should follow the same pattern: pure math functions + a pipeline entry point, with store integration at the hook level.
+- **Optional seeded PRNG**: Clustering accepts `rng?: () => number` for deterministic testing. If quantization uses any randomness (humanization), follow same pattern.
+- **Edge case handling in pipeline**: `runClustering()` handles 8+ edge cases upfront (0 hits, 1 hit, <5 hits, low variance, etc.). Quantization pipeline should handle similar edge cases (0 hits, 1 hit, no inter-onset intervals, etc.).
+
+#### TypeScript Gotchas
+- **`exactOptionalPropertyTypes`**: Can't pass `{ option }` where `option` might be `undefined`. Use conditional: `option !== undefined ? { option } : undefined`.
+- **`restrict-template-expressions`**: Wrap numbers in `String()` inside template literals.
+- **`?? 0` everywhere**: Every array indexed access needs it due to `noUncheckedIndexedAccess`.
+
+#### Test Infrastructure Available
+- `tests/helpers/clusteringFixtures.ts` has `seededRng(seed)` — reuse for any stochastic test.
+- `createMockDetectedHits(featureGroups)` creates realistic DetectedHit arrays from feature vectors.
+- Test pattern: assert invariants (correct BPM range, grid alignment within tolerance) not exact values.
+
+#### Data Flow Context
+- Quantization receives hits from `clusterStore.assignments` + `recordingStore._onsets` (onset timestamps + cluster IDs)
+- BPM estimation already exists in `estimateBpm.ts` (M3) — may need enhancement or replacement for quantization-grade accuracy
+
 ### Lessons from M3 (Onset Detection)
 
 #### React Patterns

@@ -77,12 +77,18 @@ Five independent **Zustand store slices**, each created with `create()`. No comb
 - **Processing**: Synchronous in useEffect when status='processing', wrapped in try/catch for reliability
 - **BPM estimation**: Median of inter-onset intervals from last 16 onsets, outlier rejection (>2× median), clamped to [40, 240]
 
-### Clustering
-- **Algorithm**: K-means++ initialization, Lloyd's iteration (max 100 iters, convergence threshold 0.001)
-- **Auto-K**: Test K=2..min(8, floor(M/3)) with 5 restarts each; select K with best silhouette score
-- **Fallback**: If best silhouette < 0.25, return K=1 (single sound type)
-- **Distance**: Euclidean on z-score normalized vectors
-- **Semi-supervised re-clustering**: User corrections pin assignments; constrained k-means for remaining points
+### Clustering (implemented in M4)
+- **Algorithm**: K-means++ initialization, Lloyd's iteration (max 100 iters, tolerance 1e-6)
+- **Dead centroid handling**: Reinitialize to farthest point from nearest centroid
+- **Normalization**: Min-max to [0,1] on full 12-dim vectors (complements Z-score from M3)
+- **Auto-K**: Test k=2..min(8, floor(n/3)) with 3 restarts each; select k with best silhouette score
+- **Fallback**: If best silhouette < 0.25, return k=1 (single sound type)
+- **Edge cases**: ≤1 hits → k=1 trivially, <5 hits → cap maxK=2, variance < 0.01 → k=1, >500 hits → subsample 200 for k-selection, >12 clusters → auto-merge closest centroids
+- **Distance**: Euclidean on min-max normalized vectors
+- **Split/merge operations**: Split runs k=2 on cluster's points (with min-max renormalization), merge reassigns all points, both remap to contiguous IDs
+- **Architecture**: All clustering functions are pure (no store access, no side effects). Accept optional `rng: () => number` for deterministic testing.
+- **Pipeline entry**: `runClustering(hits: DetectedHit[]) → ClusteringOutput` called from `useProcessing.ts` after feature extraction
+- **Store**: `clusterStore` (Zustand) — `setClustering`, `splitCluster`, `mergeClusters`, `reset`. Split/merge actions read hits from `recordingStore` for representative hit selection.
 
 ### Quantization
 - **BPM detection**: IOI histogram with subdivision voting (n=1..4), weighted by 1/n

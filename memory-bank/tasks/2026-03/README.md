@@ -63,8 +63,24 @@
 - Pattern: 4-agent parallel execution (DSP + Integration + UI + Tests with orchestrator)
 - See: [releases/mvp/milestone-3-onset-detection.md](../../../releases/mvp/milestone-3-onset-detection.md)
 
+### 2026-03-12: Milestone 4 -- Sound Clustering & Cluster Review UI
+- **Branch**: `milestone-4/clustering` (from `milestone-3/onset-detection`)
+- K-means++ clustering with auto-K via silhouette scoring (6 algorithm files in `src/audio/clustering/`)
+- Min-max normalization on 12-dim feature vectors, complementing M3's Z-score normalization
+- Cluster review screen at `/review`: responsive card grid, waveform preview, audio playback, split/merge operations
+- `clusterStore` Zustand slice, pipeline integration in `useProcessing.ts`
+- 314 tests passing (27 files, +109 new), 0 lint errors, production build succeeds (63KB app)
+- **Key learnings**:
+  - `exactOptionalPropertyTypes` requires conditional object construction: `rng !== undefined ? { rng } : undefined`
+  - Card component needed `style` prop for CSS custom property injection (`--cluster-color`)
+  - Silhouette edge cases: single-member clusters get s=1 (a(i)=0), empty clusters with bi→0 get s=-1
+  - Pure algorithm functions with optional seeded PRNG enable fully deterministic testing
+  - 3 parallel implementation agents + 1 test agent is optimal for this scope
+- Pattern: 3-agent parallel execution (Algorithm + State/Integration + UI agents) + Test agent
+- See: [releases/mvp/milestone-4-clustering.md](../../../releases/mvp/milestone-4-clustering.md)
+
 ## Priorities for Next Session
 
-1. Commit M3
-2. Merge milestone branches to main (M1, M2, M3)
-3. Begin Milestone 4: Clustering
+1. Browser verification of M4 (record → cluster → review → play/split/merge → continue)
+2. Begin Milestone 5: Instrument Assignment & Sample Library
+3. Begin Milestone 6: Quantization Engine

@@ -127,6 +127,13 @@ Add persistence — save sessions to IndexedDB so users can return to their beat
 - WAV files are generated client-side — no server needed
 - Dev server is HTTP on port 8087 — download triggers work without HTTPS
 
+### Lessons from M4 (Clustering)
+
+- **Store serialization**: `clusterStore` has `featureVectors: number[][]` and `normalization` — these need to be included in session save/load. `NormalizationResult` has `mins` and `maxes` arrays.
+- **ClusterData includes `representativeHitIndex`** which indexes into `recordingStore._onsets` — session restore must reconstruct this mapping.
+- **Pure algorithm functions**: Clustering functions are pure and accept data directly (no store dependency), making them easy to re-run on loaded session data.
+- **Test count at 314** as of M4 — session roundtrip tests should verify clustering state restores correctly.
+
 ### Lessons from M3 (Onset Detection)
 
 #### React Patterns

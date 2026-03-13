@@ -1,15 +1,16 @@
 import styles from './Card.module.css';
 
-import type { ReactNode, MouseEventHandler } from 'react';
+import type { CSSProperties, ReactNode, MouseEventHandler } from 'react';
 
 interface CardProps {
   children: ReactNode;
   selected?: boolean;
   onClick?: MouseEventHandler<HTMLDivElement>;
-  className?: string;
+  className?: string | undefined;
+  style?: CSSProperties | undefined;
 }
 
-export function Card({ children, selected = false, onClick, className }: CardProps) {
+export function Card({ children, selected = false, onClick, className, style }: CardProps) {
   const classNames = [
     styles.card,
     selected ? styles.selected : undefined,
@@ -22,6 +23,7 @@ export function Card({ children, selected = false, onClick, className }: CardPro
   return (
     <div
       className={classNames}
+      style={style}
       onClick={onClick}
       role={onClick !== undefined ? 'button' : undefined}
       tabIndex={onClick !== undefined ? 0 : undefined}

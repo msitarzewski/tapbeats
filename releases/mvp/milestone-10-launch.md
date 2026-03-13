@@ -117,6 +117,12 @@ Final QA, deployment setup, launch preparation, and public release. Ship TapBeat
 - No CHANGELOG.md yet — create during M10
 - No GitHub Issues templates yet — create during M10
 
+### Lessons from M4 (Clustering)
+
+- **Build size tracking**: M4 added ~15KB to app bundle (48KB → 63KB). Monitor growth through remaining milestones.
+- **Test count**: 314 tests as of M4. Target ~500+ by launch with good coverage across all milestones.
+- **Real-world testing needed**: Clustering accuracy with actual taps on varied surfaces (wood, metal, skin) — synthetic test data doesn't capture real-world variance.
+
 ### Lessons from M3 (Onset Detection)
 
 #### React Patterns

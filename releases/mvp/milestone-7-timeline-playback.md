@@ -134,6 +134,20 @@ Build the DAW-style timeline view and the full playback engine. This is the "big
 - No keyboard event handling infrastructure exists yet — build from scratch
 - Consider a custom hook (`useKeyboardShortcuts`) in `src/hooks/`
 
+### Lessons from M4 (Clustering)
+
+#### Canvas & Audio Patterns
+- **`useClusterWaveformRenderer.ts`**: One-shot canvas render (no RAF loop) with ResizeObserver + devicePixelRatio. Good pattern for static waveform previews. Timeline needs RAF loop instead but ResizeObserver/DPR handling is reusable.
+- **`useClusterPlayback.ts`**: Lazy AudioContext creation + AudioBufferSourceNode playback. M7's PlaybackEngine should replace this with a proper lookahead scheduler but the lazy AudioContext pattern is sound.
+- **AudioContext limit**: iOS Safari limits to ~1 AudioContext. PlaybackEngine should share one context.
+
+#### Store Patterns
+- **Cross-store reads**: `clusterStore.splitCluster()` reads from `recordingStore.getState()._onsets`. Timeline store may similarly need to read from cluster + recording stores.
+- **Contiguous ID remapping**: Cluster operations remap IDs to contiguous 0-based after split/merge. Track IDs should follow the same convention.
+
+#### TypeScript
+- `exactOptionalPropertyTypes` + `noUncheckedIndexedAccess` + `restrict-template-expressions` — the three most common gotchas. See M4/M5 notes for details.
+
 ### Lessons from M3 (Onset Detection)
 
 #### React Patterns
