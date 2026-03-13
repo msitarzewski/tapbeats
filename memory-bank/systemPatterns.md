@@ -209,6 +209,25 @@ Named exports require `.then(m => ({ default: m.NamedExport }))` wrapper for `Re
 - **Background tab**: `PlaybackEngine.setupVisibilityHandler()` resumes AudioContext on `visibilitychange` → visible.
 - **Touch events**: `useTimelineEditing` provides `handleTouchStart/Move/End` mirroring mouse handlers with grid snap.
 
+## Navigation Pattern (implemented post-launch)
+
+**BottomNav** (`src/components/navigation/BottomNav.tsx`): Single responsive component — bottom tab bar on mobile (< 1024px), left side rail on desktop (≥ 1024px).
+
+- 4 tabs: Home (`/`), Record (`/record`), Review (`/review`), Timeline (`/timeline`)
+- Uses `NavLink` from react-router-dom for automatic active state
+- Hides on `/timeline` mobile via `data-hidden` attribute (transport bar owns bottom space)
+- Desktop side rail always visible (64px, icon-only)
+- Active state: `var(--accent-primary)` color + pill indicator (20×3px)
+- Glassmorphism: `color-mix(in srgb, var(--bg-secondary) 85%, transparent)` + `backdrop-filter: blur(12px)`
+
+**AppShell integration**: `data-route="timeline"` attribute on shell div toggles bottom padding. Desktop uses `margin-left: var(--nav-rail-width)`.
+
+**Timeline escape hatch**: Home button in QuantizationControls header (hidden on desktop where side rail is visible).
+
+**RouteAnnouncer** (`src/components/navigation/RouteAnnouncer.tsx`): `aria-live="polite"` region announces route changes for screen readers.
+
+**Z-index scale** (in `theme.css`): `--z-sticky: 10`, `--z-nav: 100`, `--z-transport: 100`, `--z-dropdown: 200`, `--z-overlay: 300`, `--z-modal: 400`, `--z-toast: 500`.
+
 ## App State Machine
 
 ```

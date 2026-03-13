@@ -2,17 +2,18 @@
 
 ## Current State
 
-**Phase**: Milestone 10 planning complete — Launch Preparation & Release.
-**Sprint**: M10 planning done, ready for implementation (deployment, docs, QA, launch)
-**Branch**: `milestone-9/polish-pwa` (M10 work will branch from here)
+**Phase**: Post-launch UX improvements — App-wide navigation system.
+**Sprint**: Navigation feature complete, pending visual QA
+**Branch**: `feature/app-navigation` (from `fix/qa-touchups`)
 **Last Updated**: 2026-03-13
 
 ---
 
 ## Active Work
 
-- Milestones 1–8: **COMPLETE** (see `progress.md` for details)
-- Milestone 9: Polish, PWA & Cross-Browser — **COMPLETE** (on `milestone-9/polish-pwa`)
+- Milestones 1–9: **COMPLETE** (see `progress.md` for details)
+- v1.0.0: **LIVE** at tapbeats.zerologic.com
+- Navigation system: **IN PROGRESS** — BottomNav + RouteAnnouncer implemented, pending visual QA
   - **PWA**: Service worker (`public/sw.js`) with precache + cache-first strategy, web app manifest, app icons (192/512 + maskable), install banner + `beforeinstallprompt` handling, update toast with skip-waiting, self-hosted WOFF2 fonts (Inter + JetBrains Mono, removed Google Fonts CDN)
   - **Onboarding**: 4-step overlay (welcome → recording → review → export), persisted `hasSeenOnboarding` in settingsStore, replay from Settings
   - **Cross-browser**: Feature detection (`featureDetection.ts` — AudioContext, AudioWorklet, mediaDevices, IndexedDB, SW), `UnsupportedBrowser` full-page fallback, iOS Safari AudioContext `warmUp()` on user gesture, `PlaybackEngine.setupVisibilityHandler()` for background tab suspension, touch events for timeline editing (drag-to-move hits on mobile)
@@ -83,13 +84,9 @@ Touch events in useTimelineEditing:
 
 ## Next Actions
 
-1. **Milestone 10: Implementation** — Execute the 4-phase plan:
-   - Phase 1: Infrastructure — `vercel.json` (corrected config), `404.html`, OG/Twitter meta tags, version bump to 1.0.0
-   - Phase 2: Documentation — CODE_OF_CONDUCT, CHANGELOG, ATTRIBUTION, LICENSE (MIT), GitHub Issue templates, README polish
-   - Phase 3: Launch content — Product Hunt, Show HN, Reddit, Twitter/X, Dev.to drafts (already drafted)
-   - Phase 4: QA via Chrome DevTools MCP — full E2E flow verification on deployed build
-2. **Key decisions from planning**: Self-hosted at `tapbeats.zerologic.com` (user's web server). CSP needs `font-src 'self'` + `manifest-src 'self'`. SW file needs `Cache-Control: no-cache`. nginx/Apache config templates in M10 spec.
-3. **Dependency audit done**: 6 moderate dev-only vulns (esbuild chain), all licenses permissive, no hardcoded secrets, 2 console statement files to review
+1. **Visual QA**: Verify navigation at mobile + desktop breakpoints via Chrome DevTools MCP
+2. **Merge navigation PR**: Once QA passes
+3. **Deploy**: Push to production at tapbeats.zerologic.com
 
 ---
 

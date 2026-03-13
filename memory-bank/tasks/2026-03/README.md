@@ -180,10 +180,17 @@
 - Pattern: 5-agent parallel research (Explore + Security + Hosting + Marketing + Docs)
 - See: [releases/mvp/milestone-10-launch.md](../../../releases/mvp/milestone-10-launch.md)
 
+### 2026-03-13: App-Wide Navigation System
+- Implemented mobile bottom tab bar (56px + safe area) and desktop side rail (64px icon-only)
+- 4 tabs: Home, Record, Review, Timeline — using NavLink for active state
+- Tab bar hides on `/timeline` mobile (transport bar conflict), home button added to QuantizationControls
+- RouteAnnouncer for screen reader accessibility
+- Z-index scale formalized in theme.css
+- New icons: home, layers, music
+- Files: `BottomNav.tsx` + CSS, `RouteAnnouncer.tsx`, modified Icon.tsx, theme.css, AppShell, QuantizationControls, TransportBar.module.css
+
 ## Priorities for Next Session
 
-1. Milestone 10: Implementation — execute 4-phase plan
-2. Create vercel.json, bump versions to 1.0.0, add OG/Twitter meta tags
-3. Create CODE_OF_CONDUCT, CHANGELOG, ATTRIBUTION, LICENSE (MIT), Issue templates
-4. Final QA with Chrome DevTools MCP on production build
-5. Commit, push, deploy to Vercel
+1. Visual QA for navigation at mobile + desktop breakpoints
+2. Merge navigation PR
+3. Deploy to production

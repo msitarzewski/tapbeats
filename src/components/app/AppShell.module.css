@@ -10,6 +10,12 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
+}
+
+/* Timeline: nav is hidden on mobile, transport bar owns the bottom */
+.shell[data-route="timeline"] .main {
+  padding-bottom: 0;
 }
 
 .skipLink {
@@ -28,4 +34,15 @@
 
 .skipLink:focus {
   left: var(--space-4);
+}
+
+@media (min-width: 1024px) {
+  .main {
+    margin-left: var(--nav-rail-width);
+    padding-bottom: 0;
+  }
+
+  .shell[data-route="timeline"] .main {
+    padding-bottom: 0;
+  }
 }

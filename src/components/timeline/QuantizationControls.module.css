@@ -8,6 +8,34 @@
   flex-wrap: wrap;
 }
 
+.homeBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    background-color var(--ease-micro),
+    color var(--ease-micro);
+  flex-shrink: 0;
+}
+
+.homeBtn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+@media (min-width: 1024px) {
+  .homeBtn {
+    display: none;
+  }
+}
+
 /* BPM Section */
 .bpmSection {
   display: flex;

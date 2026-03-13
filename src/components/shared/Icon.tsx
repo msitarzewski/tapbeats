@@ -26,6 +26,9 @@ type IconName =
   | 'settings'
   | 'folder'
   | 'hard-drive'
+  | 'home'
+  | 'layers'
+  | 'music'
   | 'x';
 
 interface IconProps extends SVGAttributes<SVGElement> {
@@ -64,6 +67,9 @@ const PATHS: Record<IconName, string> = {
   folder: 'M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z',
   'hard-drive':
     'M22 12H2M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11zM6 16h.01M10 16h.01',
+  home: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM9 22V12h6v10',
+  layers: 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5',
+  music: 'M9 18V5l12-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM21 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0z',
   x: 'M18 6L6 18M6 6l12 12',
 };
 
