@@ -1,4 +1,5 @@
 import { Button } from '@/components/shared/Button';
+import { Confetti } from '@/components/shared/Confetti';
 import { Icon } from '@/components/shared/Icon';
 import { Modal } from '@/components/shared/Modal';
 import { useExportWav } from '@/hooks/useExportWav';
@@ -62,17 +63,32 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
         )}
 
         {isComplete && (
-          <>
-            <div className={styles.successIcon}>
-              <Icon name="check" size={48} />
-            </div>
+          <div className={styles.successWrap}>
+            <Confetti active={true} />
+            <svg
+              className={styles.checkmark}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="var(--color-success)"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path
+                d="M20 6L9 17l-5-5"
+                strokeDasharray="24"
+                strokeDashoffset="0"
+                className={styles.checkPath}
+              />
+            </svg>
             <p className={styles.progressText}>Your WAV file has been downloaded.</p>
             <div className={styles.actions}>
               <Button variant="primary" onClick={onClose}>
                 Done
               </Button>
             </div>
-          </>
+          </div>
         )}
 
         {error !== null && (

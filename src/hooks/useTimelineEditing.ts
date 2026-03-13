@@ -28,11 +28,21 @@ export interface TimelineEditingResult {
   handleMouseUp: () => void;
   handleDoubleClick: (e: React.MouseEvent<HTMLCanvasElement>) => void;
   handleContextMenu: (e: React.MouseEvent<HTMLCanvasElement>) => void;
+  handleTouchStart: (e: React.TouchEvent<HTMLCanvasElement>) => void;
+  handleTouchMove: (e: React.TouchEvent<HTMLCanvasElement>) => void;
+  handleTouchEnd: () => void;
 }
 
 function getCanvasCoords(e: React.MouseEvent<HTMLCanvasElement>): { x: number; y: number } {
   const rect = e.currentTarget.getBoundingClientRect();
   return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+}
+
+function getTouchCoords(e: React.TouchEvent<HTMLCanvasElement>): { x: number; y: number } | null {
+  const touch = e.touches[0] ?? e.changedTouches[0];
+  if (touch === undefined) return null;
+  const rect = e.currentTarget.getBoundingClientRect();
+  return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
 }
 
 function getTracks() {
@@ -191,6 +201,51 @@ export function useTimelineEditing(): TimelineEditingResult {
     }
   }, []);
 
+  const handleTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    const coords = getTouchCoords(e);
+    if (coords === null) return;
+    const canvasWidth = e.currentTarget.clientWidth;
+    const result = hitTest(coords.x, coords.y, canvasWidth);
+
+    if (result !== null) {
+      e.preventDefault();
+      useTimelineStore.getState().pushUndo();
+      dragStateRef.current = {
+        hitIndex: result.hitIndex,
+        startX: coords.x,
+        startTime: result.hit.quantizedTime,
+        currentTime: result.hit.quantizedTime,
+      };
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    const drag = dragStateRef.current;
+    if (drag === null) return;
+
+    e.preventDefault();
+    const coords = getTouchCoords(e);
+    if (coords === null) return;
+    const canvasWidth = e.currentTarget.clientWidth;
+    const { xToTime } = getTimeMapping(canvasWidth);
+    const { bpm, gridResolution } = useQuantizationStore.getState();
+    const gridInterval = gridIntervalSeconds(bpm, gridResolution);
+    const rawTime = xToTime(coords.x);
+    const snappedTime = nearestGridPoint(rawTime, 0, gridInterval);
+
+    dragStateRef.current = { ...drag, currentTime: Math.max(0, snappedTime) };
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    const drag = dragStateRef.current;
+    if (drag === null) return;
+
+    if (drag.currentTime !== drag.startTime) {
+      useQuantizationStore.getState().updateHitTime(drag.hitIndex, drag.currentTime);
+    }
+    dragStateRef.current = null;
+  }, []);
+
   return {
     dragStateRef,
     handleMouseDown,
@@ -198,5 +253,8 @@ export function useTimelineEditing(): TimelineEditingResult {
     handleMouseUp,
     handleDoubleClick,
     handleContextMenu,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
   };
 }

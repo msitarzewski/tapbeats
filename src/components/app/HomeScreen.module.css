@@ -15,6 +15,8 @@
   color: var(--text-primary);
   letter-spacing: -0.02em;
   text-align: center;
+  animation: staggerSlideUp var(--ease-spring) forwards;
+  animation-delay: 0ms;
 }
 
 .subtitle {
@@ -22,12 +24,18 @@
   color: var(--text-tertiary);
   text-align: center;
   margin-top: calc(-1 * var(--space-4));
+  animation: staggerSlideUp var(--ease-spring) forwards;
+  animation-delay: 50ms;
+  opacity: 0;
 }
 
 .actions {
   display: flex;
   align-items: center;
   gap: var(--space-4);
+  animation: staggerSlideUp var(--ease-spring) forwards;
+  animation-delay: 100ms;
+  opacity: 0;
 }
 
 .settingsBtn {
@@ -81,6 +89,9 @@
   gap: var(--space-3);
   color: var(--text-tertiary);
   padding: var(--space-8) 0;
+  animation: fadeIn var(--ease-slow) forwards;
+  animation-delay: 200ms;
+  opacity: 0;
 }
 
 .emptyHint {

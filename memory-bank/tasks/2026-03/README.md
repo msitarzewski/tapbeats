@@ -154,8 +154,19 @@
 - Pattern: Sequential implementation (types → persistence → stores → export → hooks → UI → tests)
 - See: [releases/mvp/milestone-8-session-export.md](../../../releases/mvp/milestone-8-session-export.md)
 
+### 2026-03-13: Milestone 9 -- Polish, PWA & Cross-Browser
+- **Branch**: `milestone-9/polish-pwa` (from `milestone-8/session-export`)
+- **Status**: Complete
+- **New files**: `public/sw.js`, `public/manifest.json`, `public/icons/` (4 icons), `public/fonts/` (2 WOFF2), `src/utils/serviceWorkerRegistration.ts`, `src/utils/featureDetection.ts`, `src/hooks/useServiceWorker.ts`, `src/hooks/useInstallPrompt.ts`, `src/hooks/useFocusTrap.ts`, `src/hooks/useContextualTip.ts`, `src/components/app/InstallBanner.tsx`, `src/components/app/UpdateToast.tsx`, `src/components/app/UnsupportedBrowser.tsx`, `src/components/onboarding/OnboardingOverlay.tsx`, `src/components/onboarding/OnboardingStep.tsx`, `src/components/shared/Confetti.tsx`, `src/components/shared/ErrorState.tsx`, `src/components/shared/LoadingSpinner.tsx`, `src/components/shared/Skeleton.tsx`, `src/components/shared/Toast.tsx`, `src/components/shared/Tooltip.tsx`, `src/components/timeline/TimelineSRTable.tsx`, `src/styles/fonts.css` (+ CSS modules for each)
+- **Files modified**: `index.html`, `vite.config.ts`, `main.tsx`, `App.tsx`, `AppShell.tsx`, `HomeScreen.tsx`, `RecordButton.tsx`, `PlaybackEngine.ts`, `appStore.ts`, `settingsStore.ts`, `settings.ts`, `animations.css`, `global.css`, `Modal.tsx`, `Button.module.css`, `ExportModal.tsx`, `TimelineCanvas.tsx`, `useTimelineEditing.ts`, `SettingsScreen.tsx`, `SessionCard.module.css`, `HomeScreen.module.css`, `ExportModal.module.css`
+- **Tests**: 605 passing (59 files), 0 lint errors, typecheck clean
+- **Build**: Code-split — 72KB index + 30KB Timeline + 24KB Recording + 13KB Cluster + 5KB Settings + 143KB vendor + 15KB CSS
+- **Key features**: SW with precaching, PWA installable, lazy route loading, 4-step onboarding, feature detection + unsupported browser gate, iOS Safari AudioContext warmUp + visibility handler, touch timeline editing, focus trap, skip-to-content, screen-reader timeline table, confetti celebration, stagger animations, prefers-reduced-motion, self-hosted fonts
+- Pattern: Sequential implementation (PWA → onboarding → cross-browser → accessibility → UI polish)
+- See: [releases/mvp/milestone-9-polish-pwa.md](../../../releases/mvp/milestone-9-polish-pwa.md)
+
 ## Priorities for Next Session
 
-1. Browser verification of M8 (session save/load/delete, WAV export, settings, auto-save)
-2. Begin Milestone 9: Polish, PWA & Cross-Browser
-3. Begin Milestone 10: Launch
+1. Milestone 10: Launch — deployment, final QA, documentation, open source readiness
+2. Deploy to static hosting with HTTPS + CSP
+3. Real-world testing across surfaces, environments, devices

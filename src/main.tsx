@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 
 import '@/styles/global.css';
 import { App } from '@/components/app/App';
+import { registerServiceWorker } from '@/utils/serviceWorkerRegistration';
 
 const rootElement = document.getElementById('root');
 if (rootElement === null) {
@@ -14,3 +15,8 @@ createRoot(rootElement).render(
     <App />
   </StrictMode>,
 );
+
+// Register service worker in production
+if (!import.meta.env.DEV) {
+  registerServiceWorker();
+}

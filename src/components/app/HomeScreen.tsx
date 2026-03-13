@@ -1,19 +1,23 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { OnboardingOverlay } from '@/components/onboarding/OnboardingOverlay';
 import { Button } from '@/components/shared/Button';
 import { Icon } from '@/components/shared/Icon';
 import { Modal } from '@/components/shared/Modal';
 import { SessionManager } from '@/state/persistence/SessionManager';
 import { useSessionStore } from '@/state/sessionStore';
+import { useSettingsStore } from '@/state/settingsStore';
 
 import styles from './HomeScreen.module.css';
+import { InstallBanner } from './InstallBanner';
 import { RecordButton } from './RecordButton';
 import { SessionCard } from './SessionCard';
 
 export function HomeScreen() {
   const navigate = useNavigate();
   const sessions = useSessionStore((s) => s.sessions);
+  const hasSeenOnboarding = useSettingsStore((s) => s.hasSeenOnboarding);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -110,6 +114,10 @@ export function HomeScreen() {
           </Button>
         </div>
       </Modal>
+
+      <InstallBanner />
+
+      {!hasSeenOnboarding && <OnboardingOverlay />}
     </div>
   );
 }

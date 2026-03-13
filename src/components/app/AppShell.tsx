@@ -9,7 +9,12 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   return (
     <div className={styles.shell}>
-      <main className={styles.main}>{children}</main>
+      <a href="#main-content" className={styles.skipLink}>
+        Skip to content
+      </a>
+      <main id="main-content" className={styles.main}>
+        {children}
+      </main>
     </div>
   );
 }

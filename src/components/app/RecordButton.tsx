@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { PlaybackEngine } from '@/audio/playback/PlaybackEngine';
 import { Icon } from '@/components/shared/Icon';
 
 import styles from './RecordButton.module.css';
@@ -9,6 +10,8 @@ export function RecordButton() {
   const navigate = useNavigate();
 
   const handleClick = useCallback(() => {
+    // Warm up AudioContext within user gesture (required for iOS Safari)
+    void PlaybackEngine.getInstance().warmUp();
     navigate('/record');
   }, [navigate]);
 

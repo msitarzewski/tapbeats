@@ -13,6 +13,24 @@
   flex-direction: column;
 }
 
+.skipLink {
+  position: absolute;
+  left: -9999px;
+  top: var(--space-2);
+  z-index: 300;
+  padding: var(--space-2) var(--space-4);
+  background: var(--accent-primary);
+  color: var(--text-inverse);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.skipLink:focus {
+  left: var(--space-4);
+}
+
 @media (min-width: 640px) {
   .shell {
     padding: var(--space-6);

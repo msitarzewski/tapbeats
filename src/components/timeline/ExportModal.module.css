@@ -45,6 +45,25 @@
   justify-content: flex-end;
 }
 
+.successWrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.checkmark {
+  width: 48px;
+  height: 48px;
+  animation: spinIn var(--ease-spring) forwards;
+}
+
+.checkPath {
+  animation: checkDraw 400ms ease-out 200ms forwards;
+  stroke-dashoffset: 24;
+}
+
 .successIcon {
   display: flex;
   align-items: center;

@@ -7,6 +7,8 @@
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: background-color var(--ease-micro);
+  animation: staggerSlideUp var(--ease-spring) forwards;
+  opacity: 0;
 }
 
 .card:hover {

@@ -177,8 +177,27 @@ export function SettingsScreen() {
         </div>
       </div>
 
+      {/* Help Section */}
+      <div className={styles.section}>
+        <h2 className={styles.sectionTitle}>Help</h2>
+
+        <div className={styles.field}>
+          <span className={styles.fieldLabel}>Show Tutorial</span>
+          <button
+            className={styles.dangerBtn}
+            style={{ color: 'var(--accent-primary)', borderColor: 'var(--accent-primary)' }}
+            onClick={() => {
+              useSettingsStore.getState().setHasSeenOnboarding(false);
+              navigate('/');
+            }}
+          >
+            Replay
+          </button>
+        </div>
+      </div>
+
       {/* About Section */}
-      <div className={styles.version}>TapBeats v0.8.0</div>
+      <div className={styles.version}>TapBeats v0.9.0</div>
 
       {/* Clear confirmation modal */}
       <Modal

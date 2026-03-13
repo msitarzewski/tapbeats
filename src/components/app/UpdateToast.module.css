@@ -1,0 +1,22 @@
+.toast {
+  position: fixed;
+  bottom: var(--space-6);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-float);
+  z-index: 200;
+  animation: slideUp var(--ease-spring) forwards;
+}
+
+.message {
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  white-space: nowrap;
+}

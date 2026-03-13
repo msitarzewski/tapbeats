@@ -2,7 +2,7 @@
 
 ## Overall Status
 
-**Phase**: Milestone 8 complete, ready for browser verification.
+**Phase**: Milestone 9 complete, ready for launch preparation (M10).
 **Target**: 12-week MVP delivery
 **Last Updated**: 2026-03-13
 
@@ -103,13 +103,36 @@
 
 ---
 
+### Milestone 9: Polish, PWA & Cross-Browser (2026-03-13)
+- **Branch**: `milestone-9/polish-pwa` (from `milestone-8/session-export`)
+- **Status**: Complete
+- **New files created**:
+  - PWA: `public/sw.js`, `public/manifest.json`, `public/icons/` (4 icons), `public/fonts/` (2 WOFF2), `src/utils/serviceWorkerRegistration.ts`, `src/hooks/useServiceWorker.ts`, `src/hooks/useInstallPrompt.ts`, `src/components/app/InstallBanner.tsx` + CSS, `src/components/app/UpdateToast.tsx` + CSS, `src/styles/fonts.css`
+  - Onboarding: `src/components/onboarding/OnboardingOverlay.tsx` + CSS, `src/components/onboarding/OnboardingStep.tsx` + CSS
+  - Cross-browser: `src/utils/featureDetection.ts`, `src/components/app/UnsupportedBrowser.tsx` + CSS
+  - Accessibility: `src/hooks/useFocusTrap.ts`, `src/hooks/useContextualTip.ts`, `src/components/timeline/TimelineSRTable.tsx` + CSS, `src/components/shared/Tooltip.tsx` + CSS
+  - UI Polish: `src/components/shared/Confetti.tsx` + CSS, `src/components/shared/ErrorState.tsx` + CSS, `src/components/shared/LoadingSpinner.tsx` + CSS, `src/components/shared/Skeleton.tsx` + CSS, `src/components/shared/Toast.tsx` + CSS
+- **Files modified**: `index.html` (manifest link, apple meta, removed Google Fonts CDN), `vite.config.ts` (swManifestPlugin, manual chunks), `src/main.tsx` (+SW registration), `src/components/app/App.tsx` (lazy routes, Suspense, UnsupportedBrowser gate, UpdateToast), `src/components/app/AppShell.tsx` (+skip link), `src/components/app/HomeScreen.tsx` (+onboarding, install banner, stagger animations), `src/components/app/RecordButton.tsx` (+AudioContext warmUp), `src/audio/playback/PlaybackEngine.ts` (+warmUp, +actualSampleRate, +setupVisibilityHandler), `src/state/appStore.ts` (+installState, +swStatus), `src/state/settingsStore.ts` (+hasSeenOnboarding, +dismissedTips, +tip actions), `src/types/settings.ts` (+hasSeenOnboarding, +dismissedTips), `src/styles/animations.css` (+6 keyframes, +reduced-motion query), `src/styles/global.css` (+fonts import, +sr-only utility), `src/components/shared/Modal.tsx` (+focus trap, +aria-labelledby, +Escape key), `src/components/shared/Button.module.css` (+spring easing), `src/components/timeline/ExportModal.tsx` (+confetti, +animated checkmark), `src/components/timeline/TimelineCanvas.tsx` (+touch events, +keyboard nav, +ARIA, +SR table), `src/hooks/useTimelineEditing.ts` (+touch handlers), `src/components/session/SettingsScreen.tsx` (+tutorial replay, v0.9.0), `src/components/app/SessionCard.module.css` (+stagger animation), `src/components/app/HomeScreen.module.css` (+stagger animations)
+- **Tests**: 605 passing (59 files), 0 lint errors, typecheck clean
+- **Build**: Code-split output — 72KB index + 30KB Timeline + 24KB Recording + 13KB Cluster + 5KB Settings + 143KB vendor + 15KB CSS
+- **Key features**: Service worker with precaching for offline-first, PWA installable with manifest + icons, lazy route loading, 4-step onboarding, feature detection + unsupported browser fallback, iOS Safari AudioContext warm-up + visibility handler, touch timeline editing, focus trap for modals, skip-to-content link, screen-reader timeline table, confetti export celebration, stagger entrance animations, `prefers-reduced-motion` support, self-hosted fonts
+- **Key learnings**:
+  - Custom Vite plugin can inject precache manifest into service worker at build time
+  - `React.lazy()` + dynamic import `.then(m => ({ default: m.NamedExport }))` for named exports
+  - iOS Safari requires AudioContext creation within synchronous user gesture handler
+  - `visibilitychange` event needed to resume AudioContext after background tab
+  - Focus trap: find all focusable elements, wrap Tab/Shift+Tab, restore previous focus on cleanup
+  - Canvas needs `role="application"` + `aria-label` for screen readers, plus hidden HTML table for data
+  - Self-hosting fonts (WOFF2 + font-display: swap) eliminates external CDN dependency for offline PWA
+- Pattern: Sequential implementation (PWA → onboarding → cross-browser → accessibility → UI polish)
+
+---
+
 ## Next Up
 
 | Priority | Item | Reference |
 |----------|------|-----------|
-| 1 | Browser verification of M8 | Session save/load/delete, WAV export, settings, auto-save |
-| 2 | Milestone 9: Polish, PWA & Cross-Browser | `releases/mvp/milestone-9-polish-pwa.md` |
-| 3 | Milestone 10: Launch | `releases/mvp/milestone-10-launch.md` |
+| 1 | Milestone 10: Launch | `releases/mvp/milestone-10-launch.md` |
 
 ---
 

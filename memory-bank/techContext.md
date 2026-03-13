@@ -6,7 +6,7 @@
 |-----------|---------|---------|
 | React | 18.3.1 | UI with concurrent rendering, `useSyncExternalStore` for Zustand |
 | TypeScript | 5.7.2 | Strict mode + `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `verbatimModuleSyntax` |
-| Vite | 6.0.3 | Dev server (http://localhost:8087, no SSL), ESM-native, serves `public/worklets/` as-is |
+| Vite | 6.0.3 | Dev server (http://localhost:8087, no SSL), ESM-native, serves `public/worklets/` as-is, custom `swManifestPlugin` for SW precache |
 | Zustand | 5.0.1 | State management (~1KB gzipped), selector-based subscriptions, middleware |
 | React Router | 6.28.0 | Client-side routing (5 screens: /, /record, /review, /timeline, /settings) |
 
@@ -47,7 +47,7 @@
 | lint-staged | 15.2.10 | ESLint fix + Prettier on staged .ts/.tsx/.css files |
 | GitHub Actions | - | `ci.yml` (lint, typecheck, unit tests, build), `e2e.yml` (Playwright 3-browser matrix) |
 
-**Vite specifics**: AudioWorklet files served from `public/worklets/` as static JS (no bundling). No SSL plugin — dev server is plain HTTP. COOP/COEP headers set for SharedArrayBuffer. Worklet files must not import from `src/`.
+**Vite specifics**: AudioWorklet files served from `public/worklets/` as static JS (no bundling). No SSL plugin — dev server is plain HTTP. COOP/COEP headers set for SharedArrayBuffer. Worklet files must not import from `src/`. Custom `swManifestPlugin` collects all hashed assets + public resources (samples, worklets, fonts, icons) and injects as `__PRECACHE_MANIFEST__` into `sw.js` at build time. Manual chunks: vendor (react, react-dom, zustand) separated from app code. Routes code-split via `React.lazy()`.
 
 ## Browser Targets
 
@@ -100,6 +100,8 @@ Rationale: Full control over AudioWorklet-compatible code (no DOM/fetch dependen
 
 **Allowed external deps**: React, Zustand (+ zustand/middleware persist), react-router-dom, Vite (build). Testing tools are devDependencies only (including `fake-indexeddb` for IndexedDB unit tests).
 
+**Self-hosted fonts**: Inter (400-700) and JetBrains Mono (400-500) as WOFF2 in `public/fonts/`, latin subset, `font-display: swap`. No external CDN — required for offline PWA.
+
 ## Project Structure
 
 ```
@@ -115,8 +117,8 @@ src/
   state/               # Zustand stores (7 slices) + persistence/ (IndexedDB, serialization, SessionManager)
   hooks/               # React hooks bridging audio modules and component lifecycle
   types/               # Shared TS types + global.d.ts (AudioWorklet ambient types, __DEV__)
-  utils/               # Pure utilities: math, time, arrayBuffer, platform detection
-  styles/              # theme.css (40+ custom props), global.css (reset), animations.css (keyframes)
+  utils/               # Pure utilities: math, time, arrayBuffer, platform detection, featureDetection, serviceWorkerRegistration
+  styles/              # theme.css (40+ custom props), global.css (reset), animations.css (keyframes), fonts.css (self-hosted WOFF2)
   assets/samples/      # Built-in instrument samples
 public/
   worklets/            # AudioWorklet processor JS files (served as static, separate from src/)

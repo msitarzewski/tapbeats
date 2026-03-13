@@ -12,6 +12,9 @@ interface SettingsStoreState extends SettingsState {
   setDefaultGridResolution: (resolution: GridResolution) => void;
   setTheme: (theme: ThemeMode) => void;
   setDefaultSensitivity: (sensitivity: SensitivityLevel) => void;
+  setHasSeenOnboarding: (seen: boolean) => void;
+  dismissTip: (tipId: string) => void;
+  resetTips: () => void;
   reset: () => void;
 }
 
@@ -38,6 +41,22 @@ export const useSettingsStore = create<SettingsStoreState>()(
 
       setDefaultSensitivity: (sensitivity) => {
         set({ defaultSensitivity: sensitivity });
+      },
+
+      setHasSeenOnboarding: (seen) => {
+        set({ hasSeenOnboarding: seen });
+      },
+
+      dismissTip: (tipId) => {
+        set((state) => ({
+          dismissedTips: state.dismissedTips.includes(tipId)
+            ? state.dismissedTips
+            : [...state.dismissedTips, tipId],
+        }));
+      },
+
+      resetTips: () => {
+        set({ dismissedTips: [] });
       },
 
       reset: () => {

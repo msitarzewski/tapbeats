@@ -169,6 +169,46 @@ Seven independent **Zustand store slices**, each created with `create()`. No com
 
 **Filename**: `tapbeats-{sanitized-name}-{bpm}bpm.wav`
 
+## PWA Pattern (implemented in M9)
+
+**Service Worker** (`public/sw.js`): Precache strategy with versioned cache (`tapbeats-v1`). Cache-first for precached assets, network fallback for navigation. Skip-waiting message for immediate update. Precache manifest injected at build time by Vite plugin (`swManifestPlugin`).
+
+**Registration** (`src/utils/serviceWorkerRegistration.ts`): Registers on page load (production only). Detects updates via `updatefound`. Auto-reloads on `controllerchange`. `skipWaiting()` sends message to waiting SW.
+
+**Install prompt**: `useInstallPrompt` hook intercepts `beforeinstallprompt`, tracks state via `appStore.installState`. `InstallBanner` surfaces install option. Detects already-installed via `(display-mode: standalone)` media query.
+
+**Offline-first**: All app assets + samples + worklets + fonts precached. IndexedDB data is local (no SW interception needed). Settings in localStorage.
+
+## Code Splitting Pattern (implemented in M9)
+
+Routes lazy-loaded via `React.lazy()` + `Suspense`:
+```
+HomeScreen — eager (main chunk, ~72KB)
+RecordingScreen — lazy (~24KB)
+ClusterScreen — lazy (~13KB)
+TimelineScreen — lazy (~30KB)
+SettingsScreen — lazy (~5KB)
+vendor — separate (~143KB, React + ReactDOM + Zustand)
+```
+
+Named exports require `.then(m => ({ default: m.NamedExport }))` wrapper for `React.lazy()`.
+
+## Accessibility Patterns (implemented in M9)
+
+- **Skip link**: `<a href="#main-content">Skip to content</a>` in AppShell, visually hidden until focused
+- **Focus trap**: `useFocusTrap(isOpen)` hook — finds all focusable elements, wraps Tab/Shift+Tab, restores previous focus on cleanup. Used by Modal.
+- **Modal**: `role="dialog"`, `aria-modal="true"`, `aria-labelledby` via `useId()`, Escape to close
+- **Canvas accessibility**: `role="application"`, `aria-label`, keyboard arrow navigation, paired with hidden `TimelineSRTable` for screen reader data
+- **Toast/alerts**: `role="status"` + `aria-live="polite"` for non-critical, `role="alert"` for errors
+- **Reduced motion**: Global `@media (prefers-reduced-motion: reduce)` sets all animations to 0.01ms. Confetti component checks `useReducedMotion()` hook.
+
+## Cross-Browser Pattern (implemented in M9)
+
+- **Feature detection**: `isBrowserSupported()` checks AudioContext + mediaDevices + IndexedDB. `UnsupportedBrowser` component shown if unsupported.
+- **iOS Safari AudioContext**: `PlaybackEngine.warmUp()` called in RecordButton click handler (synchronous within user gesture). Locks to 44100Hz.
+- **Background tab**: `PlaybackEngine.setupVisibilityHandler()` resumes AudioContext on `visibilitychange` → visible.
+- **Touch events**: `useTimelineEditing` provides `handleTouchStart/Move/End` mirroring mouse handlers with grid snap.
+
 ## App State Machine
 
 ```

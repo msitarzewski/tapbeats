@@ -9,6 +9,8 @@ export interface SettingsState {
   readonly defaultGridResolution: GridResolution;
   readonly theme: ThemeMode;
   readonly defaultSensitivity: SensitivityLevel;
+  readonly hasSeenOnboarding: boolean;
+  readonly dismissedTips: readonly string[];
 }
 
 export const DEFAULT_SETTINGS: SettingsState = {
@@ -17,4 +19,6 @@ export const DEFAULT_SETTINGS: SettingsState = {
   defaultGridResolution: '1/8',
   theme: 'dark',
   defaultSensitivity: 'medium',
+  hasSeenOnboarding: false,
+  dismissedTips: [],
 };

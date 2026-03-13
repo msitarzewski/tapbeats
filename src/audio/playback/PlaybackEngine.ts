@@ -34,8 +34,30 @@ export class PlaybackEngine {
     return this._ready;
   }
 
+  get actualSampleRate(): number {
+    return this.context?.sampleRate ?? 44100;
+  }
+
   getContext(): AudioContext | null {
     return this.context;
+  }
+
+  /**
+   * Warm up the AudioContext within a user gesture handler.
+   * Required for iOS Safari which suspends contexts created outside gestures.
+   */
+  async warmUp(): Promise<void> {
+    if (this.context !== null) {
+      if (this.context.state === 'suspended') {
+        await this.context.resume();
+      }
+      return;
+    }
+    // Create context within gesture — iOS Safari requires this
+    this.context = new AudioContext({ sampleRate: 44100 });
+    if (this.context.state === 'suspended') {
+      await this.context.resume();
+    }
   }
 
   async init(): Promise<void> {
@@ -234,5 +256,17 @@ export class PlaybackEngine {
     if (this.context !== null && this.context.state === 'suspended') {
       void this.context.resume();
     }
+  }
+
+  /**
+   * Handle visibility change — resume AudioContext when app returns to foreground.
+   * iOS Safari suspends audio when tab is backgrounded.
+   */
+  setupVisibilityHandler(): void {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        this.ensureResumed();
+      }
+    });
   }
 }
