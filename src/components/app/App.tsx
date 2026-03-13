@@ -1,8 +1,9 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { useServiceWorker } from '@/hooks/useServiceWorker';
+import { initThemeListener } from '@/state/settingsStore';
 import { isBrowserSupported } from '@/utils/featureDetection';
 
 import { AppShell } from './AppShell';
@@ -35,13 +36,15 @@ function RouteSpinner() {
 export function App() {
   const { status, update } = useServiceWorker();
 
+  useEffect(() => initThemeListener(), []);
+
   if (!isBrowserSupported()) {
     return <UnsupportedBrowser />;
   }
 
   return (
     <ErrorBoundary>
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AppShell>
           <Suspense fallback={<RouteSpinner />}>
             <Routes>

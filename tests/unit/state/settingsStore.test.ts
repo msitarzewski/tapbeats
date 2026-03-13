@@ -86,7 +86,7 @@ describe('settingsStore', () => {
       useSettingsStore.getState().reset();
 
       expect(useSettingsStore.getState().defaultBpm).toBe(120);
-      expect(useSettingsStore.getState().theme).toBe('dark');
+      expect(useSettingsStore.getState().theme).toBe('auto');
     });
   });
 

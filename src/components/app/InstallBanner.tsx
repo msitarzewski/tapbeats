@@ -16,7 +16,7 @@ export function InstallBanner() {
         <span className={styles.text}>Install TapBeats for offline use</span>
       </div>
       <div className={styles.actions}>
-        <Button variant="ghost" size="sm" onClick={dismiss} aria-label="Dismiss install banner">
+        <Button variant="ghost" size="sm" onClick={dismiss}>
           Not now
         </Button>
         <Button
