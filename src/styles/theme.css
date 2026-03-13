@@ -74,6 +74,19 @@
   --radius-xl: 16px;
   --radius-full: 9999px;
 
+  /* Z-index scale */
+  --z-sticky: 10;
+  --z-nav: 100;
+  --z-transport: 100;
+  --z-dropdown: 200;
+  --z-overlay: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+
+  /* Nav dimensions */
+  --nav-height: 56px;
+  --nav-rail-width: 64px;
+
   /* Shadows (dark theme -- minimal) */
   --shadow-float: 0 8px 24px #00000060;
 

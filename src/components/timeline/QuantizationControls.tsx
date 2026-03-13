@@ -1,3 +1,6 @@
+import { useNavigate } from 'react-router-dom';
+
+import { Icon } from '@/components/shared/Icon';
 import { Slider } from '@/components/shared/Slider';
 import { useQuantizationStore } from '@/state/quantizationStore';
 import type { GridResolution } from '@/types/quantization';
@@ -9,6 +12,7 @@ import type { ChangeEvent } from 'react';
 const GRID_OPTIONS: readonly GridResolution[] = ['1/4', '1/8', '1/16', '1/8T', '1/16T'];
 
 export function QuantizationControls() {
+  const navigate = useNavigate();
   const bpm = useQuantizationStore((s) => s.bpm);
   const bpmResult = useQuantizationStore((s) => s.bpmResult);
   const gridResolution = useQuantizationStore((s) => s.gridResolution);
@@ -31,6 +35,16 @@ export function QuantizationControls() {
 
   return (
     <div className={styles.controls}>
+      <button
+        className={styles.homeBtn}
+        onClick={() => {
+          navigate('/');
+        }}
+        aria-label="Back to Home"
+      >
+        <Icon name="home" size={18} />
+      </button>
+
       <div className={styles.bpmSection}>
         <span className={styles.bpmLabel}>BPM</span>
         <div className={styles.bpmInputWrap}>
