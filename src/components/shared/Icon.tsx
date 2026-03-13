@@ -8,7 +8,10 @@ type IconName =
   | 'help-circle'
   | 'record'
   | 'play'
-  | 'chevron-right';
+  | 'chevron-right'
+  | 'chevron-down'
+  | 'volume-x'
+  | 'check';
 
 interface IconProps extends SVGAttributes<SVGElement> {
   readonly name: IconName;
@@ -26,6 +29,9 @@ const PATHS: Record<IconName, string> = {
   record: '',
   play: 'M5 3l14 9-14 9V3z',
   'chevron-right': 'M9 18l6-6-6-6',
+  'chevron-down': 'M6 9l6 6 6-6',
+  'volume-x': 'M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6',
+  check: 'M20 6L9 17l-5-5',
 };
 
 export function Icon({ name, size = 24, className, ...rest }: IconProps) {

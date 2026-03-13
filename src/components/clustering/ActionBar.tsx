@@ -9,6 +9,7 @@ interface ActionBarProps {
   mode: ActionBarMode;
   canSplit: boolean;
   canMerge: boolean;
+  canContinue: boolean;
   selectedCount: number;
   onSplit: () => void;
   onMerge: () => void;
@@ -20,6 +21,7 @@ export function ActionBar({
   mode,
   canSplit,
   canMerge,
+  canContinue,
   selectedCount,
   onSplit,
   onMerge,
@@ -63,7 +65,7 @@ export function ActionBar({
         </Button>
       </div>
       <div className={styles.right}>
-        <Button variant="primary" size="md" onClick={onContinue}>
+        <Button variant="primary" size="md" disabled={!canContinue} onClick={onContinue}>
           Continue
           <Icon name="chevron-right" size={16} />
         </Button>

@@ -134,12 +134,29 @@ Build the DAW-style timeline view and the full playback engine. This is the "big
 - No keyboard event handling infrastructure exists yet — build from scratch
 - Consider a custom hook (`useKeyboardShortcuts`) in `src/hooks/`
 
+### Lessons from M5 (Instrument Assignment)
+
+#### PlaybackEngine Already Exists
+- **`PlaybackEngine.ts`** (`src/audio/playback/PlaybackEngine.ts`) is already a singleton managing the AudioContext + sample buffer cache. M7's lookahead scheduler should use `PlaybackEngine.getInstance()` and extend it (or compose with it) — do NOT create another AudioContext.
+- **`playSample(instrumentId)`** already works for one-shot playback. M7 needs to add scheduled playback: `playSampleAt(instrumentId, when: number)` using `AudioBufferSourceNode.start(when)`.
+- **`getBuffer(instrumentId)`** returns cached AudioBuffer — the lookahead scheduler can use this directly.
+- **`useClusterPlayback.ts`** already delegates to PlaybackEngine — no AudioContext management needed in hooks.
+
+#### Sample & Instrument Data Available
+- `SAMPLE_MANIFEST` has 18 instruments with `id`, `label`, `category`, `colorIndex`
+- `instrumentAssignments` in clusterStore maps clusterId → instrumentId
+- `getInstrumentColor(id)` returns CSS var for track color in timeline
+- Skipped clusters (`assignment === 'skip'`) should be excluded from timeline tracks
+
+#### Agent Strategy
+- M5 used 6 parallel agents successfully. M7 has more interdependencies (timeline rendering depends on playback state), so consider: PlaybackEngine extension + Timeline canvas + Transport controls + Track controls + State in 4-5 agents.
+
 ### Lessons from M4 (Clustering)
 
 #### Canvas & Audio Patterns
 - **`useClusterWaveformRenderer.ts`**: One-shot canvas render (no RAF loop) with ResizeObserver + devicePixelRatio. Good pattern for static waveform previews. Timeline needs RAF loop instead but ResizeObserver/DPR handling is reusable.
-- **`useClusterPlayback.ts`**: Lazy AudioContext creation + AudioBufferSourceNode playback. M7's PlaybackEngine should replace this with a proper lookahead scheduler but the lazy AudioContext pattern is sound.
-- **AudioContext limit**: iOS Safari limits to ~1 AudioContext. PlaybackEngine should share one context.
+- **`useClusterPlayback.ts`**: Delegates to PlaybackEngine singleton (refactored in M5). No AudioContext management needed.
+- **AudioContext limit**: Already handled by PlaybackEngine singleton (M5).
 
 #### Store Patterns
 - **Cross-store reads**: `clusterStore.splitCluster()` reads from `recordingStore.getState()._onsets`. Timeline store may similarly need to read from cluster + recording stores.

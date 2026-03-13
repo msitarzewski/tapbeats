@@ -36,7 +36,7 @@ Polish the end-to-end experience, add PWA support for offline use and installabi
 - [ ] iOS Safari: Sample rate normalization (lock to 44.1kHz)
 - [ ] iOS Safari: Background tab audio suspension handling
 - [ ] Firefox: AudioWorklet compatibility verification
-- [ ] Safari: OGG → MP3 sample fallback
+- [ ] Safari: OGG → MP3 sample fallback (currently WAV-only via `formatDetection.ts` — swap synthetic WAVs for CC0 OGG+MP3 samples)
 - [ ] Edge: Full functionality verification
 - [ ] Mobile Chrome: Touch event handling for timeline
 - [ ] Test and fix all browsers in compatibility matrix
@@ -117,6 +117,18 @@ Polish the end-to-end experience, add PWA support for offline use and installabi
 - `brand-strategy.md` — First-time user experience
 
 ## Implementation Notes from Previous Milestones
+
+### From M5 (Instrument Assignment)
+
+#### Sample Format & PWA
+- Current samples are synthetic WAVs in `public/samples/` (448KB total). For PWA:
+  - Replace with real CC0 samples in OGG (primary) + MP3 (Safari fallback)
+  - `formatDetection.ts` already has the detection stub — extend to check `Audio.canPlayType('audio/ogg')` and fall back to MP3
+  - Service worker must cache sample files for offline playback
+  - Consider lazy-loading samples (load on first play vs. all at init) to reduce initial cache size
+- **PlaybackEngine singleton** ensures single AudioContext — iOS Safari AudioContext resume on user gesture is already handled in `PlaybackEngine.init()` and `ensureResumed()`
+- **InstrumentChips** uses `role="radiogroup"` with proper ARIA — audit for keyboard navigation (arrow keys within group)
+- **SampleBrowser** modal uses existing Modal component — verify focus trap and escape-to-close accessibility
 
 ### Infrastructure from M2
 - **Reduced motion support**: `useReducedMotion` hook + CSS `@media (prefers-reduced-motion: reduce)` already applied to RecordButton glow, HitFlash, StatsBar bounce, RecordingHeader dot pulse. Extend pattern to all new animations.

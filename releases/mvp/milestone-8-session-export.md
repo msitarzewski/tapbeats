@@ -122,6 +122,19 @@ Add persistence — save sessions to IndexedDB so users can return to their beat
 - `localStorage` for settings — no special test setup needed (jsdom supports it)
 - WAV export: offline `AudioContext` rendering — extend `createMockAudioContext()` in `tests/helpers/audioMocks.ts`
 
+### Lessons from M5 (Instrument Assignment)
+
+#### Session Data to Persist
+- `instrumentAssignments: Record<number, string>` in clusterStore — must be saved/restored with session
+- `SAMPLE_MANIFEST` is compile-time constant — no need to serialize instrument definitions
+- WAV samples are in `public/samples/` — loaded at runtime by PlaybackEngine, not stored in session
+- PlaybackEngine singleton will need re-init on session load (call `init()` to reload samples)
+
+#### WAV Export Integration
+- `PlaybackEngine.getBuffer(instrumentId)` provides AudioBuffers for offline rendering
+- Each track's instrument assignment determines which sample buffer to use
+- Skipped clusters (`assignment === 'skip'`) should be excluded from export
+
 ### Export Considerations
 - Build output goes to `dist/` — already .gitignored
 - WAV files are generated client-side — no server needed

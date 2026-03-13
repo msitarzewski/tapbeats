@@ -2,7 +2,7 @@
 
 ## Overall Status
 
-**Phase**: Milestone 4 complete, ready for browser verification.
+**Phase**: Milestone 5 complete, ready for browser verification.
 **Target**: 12-week MVP delivery
 **Last Updated**: 2026-03-12
 
@@ -45,15 +45,27 @@
 - 314 tests passing (27 test files, +109 new), 0 lint errors, production build succeeds (63KB app)
 - Pattern: 3 parallel agents (Algorithm, State/Integration, UI) + separate Test agent
 
+### Milestone 5: Instrument Assignment & Sample Library (2026-03-12)
+- **Branch**: `milestone-5/instrument-assignment` (from M4)
+- PlaybackEngine singleton (shared AudioContext, sample loading/caching/playback)
+- 18-instrument manifest across 5 categories (kicks, snares, hihats, toms, percussion)
+- Synthetic drum sample generation (18 WAV files, 448KB total in `public/samples/`)
+- Smart defaults: weighted Euclidean distance to idealized profiles, greedy assignment
+- InstrumentChips quick-pick UI + SampleBrowser modal
+- Extended clusterStore with assignment state (assign, skip, defaults, hasAnyAssignment)
+- Refactored useClusterPlayback to delegate to PlaybackEngine
+- 377 tests passing (35 test files, +63 new), 0 lint errors, production build succeeds (74KB app)
+- Pattern: 6 parallel agents (Types/Manifest, SmartDefaults, PlaybackEngine, State, UI, SampleGen) + Test agent
+
 ---
 
 ## Next Up
 
 | Priority | Item | Reference |
 |----------|------|-----------|
-| 1 | Browser verification of M4 | Record → stop → `/review` → play/split/merge/continue |
-| 2 | Milestone 5: Instrument Assignment | `releases/mvp/milestone-5-instrument-assignment.md` |
-| 3 | Milestone 6: Quantization Engine | `releases/mvp/milestone-6-quantization.md` |
+| 1 | Browser verification of M5 | Cluster → assign instruments → skip → continue |
+| 2 | Milestone 6: Quantization Engine | `releases/mvp/milestone-6-quantization.md` |
+| 3 | Milestone 7: Timeline & Playback | `releases/mvp/milestone-7-timeline-playback.md` |
 
 ---
 
@@ -80,8 +92,11 @@ None.
 | Onset listeners in useAudioCapture (not separate hook) | Refs don't trigger re-renders; wire where instance created |
 | Synchronous processing (not setTimeout batches) | React cleanup kills async chains in effects |
 | RMS energy gate + flux threshold 0.5 | Dual gating rejects ambient noise (spectral flux alone insufficient) |
-| Complete status navigates home | M3 has no review screen; M4+ will navigate to /review |
 | Complementary normalization (Z-score + min-max) | Z-score for storage/comparison, min-max rescales to [0,1] for clustering distance |
 | Clustering runs on main thread (not Worker) | <500ms for 200 hits, no complexity of Worker messaging |
 | Silhouette < 0.25 falls back to k=1 | Low silhouette means no natural grouping; better UX to show 1 cluster |
 | Max 12 clusters with auto-merge | UI grid practical limit; auto-merge closest centroids |
+| Singleton PlaybackEngine | Avoids Chrome 6-context / iOS Safari 1-context AudioContext limits |
+| Synthetic WAV samples (not CC0) | Quick to generate, distinguishable; real samples swap in-place later |
+| Smart defaults via weighted distance | Best-effort heuristic; user always overrides; greedy prevents duplicates |
+| Split/merge clears assignments | IDs remap to contiguous; simpler than tracking old→new mapping |

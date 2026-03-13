@@ -112,6 +112,24 @@ Implement the quantization engine that takes messy human timing and snaps it to 
 - Coverage thresholds at 80% — quantization math will be measured
 - Vite build target is ES2022 — can use modern JS features freely
 
+### Lessons from M5 (Instrument Assignment)
+
+#### Architecture Established
+- **PlaybackEngine singleton** (`src/audio/playback/PlaybackEngine.ts`): Manages single AudioContext + sample buffer cache. M6 quantization preview playback should use `PlaybackEngine.getInstance()` — do NOT create another AudioContext.
+- **Smart defaults pattern** (`src/audio/playback/smartDefaults.ts`): Pure function that scores clusters against idealized profiles. If quantization needs heuristics (e.g., auto-detecting swing), follow the same pure-function-with-scoring pattern.
+- **Store extension pattern**: M5 added `instrumentAssignments` + 4 actions to existing `clusterStore`. M6 should similarly extend `timelineStore` (or create new `quantizationStore`) following the same pattern: state field + action methods.
+
+#### Data Flow for M6
+- Quantization receives: `clusterStore.clusters` (with `instrumentAssignments`) + `recordingStore._onsets` (onset timestamps)
+- Each cluster has an assigned instrument ID (or 'skip') — quantization should respect skip by excluding those hits
+- BPM estimation already exists in `estimateBpm.ts` (M3) — enhance for quantization-grade accuracy
+
+#### Code Patterns Learned
+- CSS module template literals trigger `restrict-template-expressions` — use `[styles.a, styles.b].join(' ')` instead of template literals
+- `string | 'skip'` is redundant per eslint — use plain `string` type, document special values as convention
+- `??=` operator preferred by eslint over `if (x === undefined) x = y`
+- 6 parallel agents worked well for M5 scope; quantization is more sequential (algorithm depends on BPM detection), so 3-4 agents may be better
+
 ### Lessons from M4 (Clustering)
 
 #### Architecture Patterns to Follow

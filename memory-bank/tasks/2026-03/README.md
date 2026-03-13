@@ -79,8 +79,30 @@
 - Pattern: 3-agent parallel execution (Algorithm + State/Integration + UI agents) + Test agent
 - See: [releases/mvp/milestone-4-clustering.md](../../../releases/mvp/milestone-4-clustering.md)
 
+### 2026-03-12: Milestone 5 -- Instrument Assignment & Sample Library
+- **Branch**: `milestone-5/instrument-assignment` (from `milestone-4/clustering`)
+- PlaybackEngine singleton managing single AudioContext + sample loading/caching/playback
+- 18-instrument manifest (5 categories: kicks, snares, hihats, toms, percussion)
+- Synthetic drum sample generation script (`scripts/generate-samples.ts`) → 18 WAV files (448KB in `public/samples/`)
+- Smart defaults: weighted Euclidean distance to idealized drum profiles, greedy unique assignment
+- InstrumentChips quick-pick component (radiogroup accessibility) + SampleBrowser modal (category-grouped 3-col grid)
+- Extended clusterStore with `instrumentAssignments`, `assignInstrument`, `skipCluster`, `setDefaultSuggestions`, `hasAnyAssignment`
+- Refactored useClusterPlayback to delegate to PlaybackEngine singleton
+- ClusterCard: instrument badge, dynamic color switching, muted/dimmed state for skipped
+- ClusterScreen: smart defaults on load, duplicate detection, SampleBrowser wiring, auto-assign on continue
+- ActionBar: `canContinue` gate (≥1 non-skip assignment required)
+- 377 tests passing (35 files, +63 new), 0 lint errors, production build succeeds (74KB app)
+- **Key learnings**:
+  - 6 parallel agents is efficient for this scope (Types/Manifest, SmartDefaults, PlaybackEngine, State, UI, SampleGen) + Test agent
+  - `string | 'skip'` is redundant per eslint — use `string`, document 'skip' as convention
+  - CSS module template literals trigger `restrict-template-expressions` — use `.join(' ')` instead
+  - Singleton PlaybackEngine avoids AudioContext limits (Chrome 6, iOS Safari 1)
+  - Synthetic WAVs are trivial to generate and sound distinguishable; CC0 samples swap in-place later
+- Pattern: 6-agent parallel execution (orchestrator + 6 specialist agents) + Test agent
+- See: [releases/mvp/milestone-5-instrument-assignment.md](../../../releases/mvp/milestone-5-instrument-assignment.md)
+
 ## Priorities for Next Session
 
-1. Browser verification of M4 (record → cluster → review → play/split/merge → continue)
-2. Begin Milestone 5: Instrument Assignment & Sample Library
-3. Begin Milestone 6: Quantization Engine
+1. Browser verification of M5 (cluster → assign instruments → skip → more → continue)
+2. Begin Milestone 6: Quantization Engine
+3. Begin Milestone 7: Timeline & Playback

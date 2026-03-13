@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { DEFAULT_CAPTURE_CONFIG } from '@/types/audio';
+import { PlaybackEngine } from '@/audio/playback/PlaybackEngine';
 
 interface ClusterPlaybackResult {
   playingClusterId: number | null;
@@ -9,42 +9,28 @@ interface ClusterPlaybackResult {
 }
 
 export function useClusterPlayback(): ClusterPlaybackResult {
-  const audioCtxRef = useRef<AudioContext | null>(null);
   const sourceRef = useRef<AudioBufferSourceNode | null>(null);
   const [playingClusterId, setPlayingClusterId] = useState<number | null>(null);
+  const engine = PlaybackEngine.getInstance();
 
   const stopCurrent = useCallback(() => {
-    if (sourceRef.current !== null) {
-      try {
-        sourceRef.current.stop();
-      } catch {
-        // Already stopped — ignore
-      }
-      sourceRef.current.disconnect();
-      sourceRef.current = null;
-    }
+    engine.stop();
     setPlayingClusterId(null);
-  }, []);
+  }, [engine]);
 
   const play = useCallback(
     (clusterId: number, snippet: Float32Array) => {
-      // Stop any current playback first
       stopCurrent();
 
-      // Lazy-init AudioContext on first user gesture
-      audioCtxRef.current ??= new AudioContext({
-        sampleRate: DEFAULT_CAPTURE_CONFIG.sampleRate,
-      });
+      // Ensure engine context is available (init must have been called elsewhere)
+      const ctx = engine.getContext();
+      if (ctx === null) return;
 
-      const ctx = audioCtxRef.current;
-
-      // Resume if suspended (autoplay policy)
       if (ctx.state === 'suspended') {
         void ctx.resume();
       }
 
       const buffer = ctx.createBuffer(1, snippet.length, ctx.sampleRate);
-      // Ensure ArrayBuffer backing (not SharedArrayBuffer) for copyToChannel
       const channelData = new Float32Array(snippet);
       buffer.copyToChannel(channelData, 0);
 
@@ -63,10 +49,9 @@ export function useClusterPlayback(): ClusterPlaybackResult {
       setPlayingClusterId(clusterId);
       source.start();
     },
-    [stopCurrent],
+    [stopCurrent, engine],
   );
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (sourceRef.current !== null) {
@@ -78,10 +63,7 @@ export function useClusterPlayback(): ClusterPlaybackResult {
         sourceRef.current.disconnect();
         sourceRef.current = null;
       }
-      if (audioCtxRef.current !== null) {
-        void audioCtxRef.current.close();
-        audioCtxRef.current = null;
-      }
+      // Don't close AudioContext here — PlaybackEngine owns it
     };
   }, []);
 

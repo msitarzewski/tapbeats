@@ -63,6 +63,24 @@ class MockAudioWorkletNode {
   disconnect = vi.fn();
 }
 
+class MockBufferSourceNode {
+  buffer: unknown = null;
+  connect = vi.fn().mockReturnThis();
+  disconnect = vi.fn();
+  start = vi.fn();
+  stop = vi.fn();
+  onended: (() => void) | null = null;
+}
+
+class MockAudioBuffer {
+  readonly numberOfChannels = 1;
+  readonly length = 100;
+  readonly sampleRate = 44100;
+  readonly duration = 100 / 44100;
+  copyToChannel = vi.fn();
+  getChannelData = vi.fn(() => new Float32Array(100));
+}
+
 class MockAudioContext {
   readonly sampleRate = 44100;
   state: AudioContextState = 'running';
@@ -75,6 +93,9 @@ class MockAudioContext {
   createGain = vi.fn(() => new MockGainNode());
   createAnalyser = vi.fn(() => new MockAnalyserNode());
   createMediaStreamSource = vi.fn(() => new MockMediaStreamSourceNode());
+  createBufferSource = vi.fn(() => new MockBufferSourceNode());
+  createBuffer = vi.fn(() => new MockAudioBuffer());
+  decodeAudioData = vi.fn(() => Promise.resolve(new MockAudioBuffer()));
   resume = vi.fn(() => {
     this.state = 'running';
     return Promise.resolve();
@@ -130,6 +151,17 @@ Object.defineProperty(navigator, 'mediaDevices', {
   writable: true,
   configurable: true,
 });
+
+// ---------------------------------------------------------------------------
+// Global fetch mock
+// ---------------------------------------------------------------------------
+
+globalThis.fetch = vi.fn(() =>
+  Promise.resolve({
+    ok: true,
+    arrayBuffer: () => Promise.resolve(new ArrayBuffer(100)),
+  } as Response),
+);
 
 // ---------------------------------------------------------------------------
 // Cleanup between tests

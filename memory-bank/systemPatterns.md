@@ -90,6 +90,18 @@ Five independent **Zustand store slices**, each created with `create()`. No comb
 - **Pipeline entry**: `runClustering(hits: DetectedHit[]) → ClusteringOutput` called from `useProcessing.ts` after feature extraction
 - **Store**: `clusterStore` (Zustand) — `setClustering`, `splitCluster`, `mergeClusters`, `reset`. Split/merge actions read hits from `recordingStore` for representative hit selection.
 
+### Instrument Assignment (implemented in M5)
+- **Sample manifest**: Compile-time constant `SAMPLE_MANIFEST` (18 instruments, 5 categories) — no JSON fetch
+- **PlaybackEngine**: Singleton class, lazy AudioContext init on first user gesture, fetches/decodes all WAV samples from `public/samples/{category}/{id}.wav`
+- **Smart defaults**: Pure function `suggestInstruments(clusters)` — weighted Euclidean distance from cluster centroids (first 7 features) to idealized profiles (kick, snare, hihat, tom, percussion)
+  - Weights: centroid=3, rms=2, zcr=2, attack=1.5, others=1
+  - Greedy assignment: best cluster-category pair first, no duplicate categories for ≤5 clusters, allow duplicates for >5
+  - Edge cases: 0→empty, 1→kick, 2→lowest centroid=kick/highest=hihat
+- **State**: `instrumentAssignments: Record<number, string>` in clusterStore — values are instrument IDs or `'skip'`
+- **Split/merge behavior**: Clears all assignments (IDs remap to contiguous), UI re-triggers `setDefaultSuggestions`
+- **UI**: InstrumentChips (quick-pick radiogroup) + SampleBrowser (modal, grouped by category, 3-col grid)
+- **Color switching**: When instrument assigned, ClusterCard's `--cluster-color` switches from cluster-based to instrument-based via `getInstrumentColor()`
+
 ### Quantization
 - **BPM detection**: IOI histogram with subdivision voting (n=1..4), weighted by 1/n
 - **Grid snap**: `quantizedTime = original + (nearestGrid - original) * strength`
@@ -108,7 +120,7 @@ Five independent **Zustand store slices**, each created with `create()`. No comb
 
 **Audio graph**: Per-hit `AudioBufferSourceNode -> GainNode(velocity)` -> per-track `StereoPannerNode -> GainNode(volume)` -> `MasterGainNode -> AudioDestination`
 
-**Sample loading**: OGG primary, MP3 fallback (Safari). Deduped concurrent loads. In-memory `AudioBuffer` cache.
+**Sample loading**: WAV samples bundled in `public/samples/`. PlaybackEngine singleton fetches all on init, decodes to `AudioBuffer` cache. OGG/MP3 format detection stub ready for real samples.
 
 ## Rendering Pattern
 

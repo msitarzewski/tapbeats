@@ -20,11 +20,16 @@ interface ClusterStoreState {
   assignments: number[];
   silhouette: number;
   error: string | null;
+  instrumentAssignments: Record<number, string>;
 
   // Actions
   setClustering: (output: ClusteringOutput, hits: DetectedHit[]) => void;
   splitCluster: (clusterId: number) => void;
   mergeClusters: (clusterA: number, clusterB: number) => void;
+  assignInstrument: (clusterId: number, instrumentId: string | null) => void;
+  skipCluster: (clusterId: number) => void;
+  setDefaultSuggestions: (suggestions: Map<number, string>) => void;
+  hasAnyAssignment: () => boolean;
   reset: () => void;
 }
 
@@ -36,6 +41,7 @@ const INITIAL_STATE = {
   assignments: [] as number[],
   silhouette: 0,
   error: null as string | null,
+  instrumentAssignments: {} as Record<number, string>,
 };
 
 function buildClusterData(
@@ -146,6 +152,7 @@ export const useClusterStore = create<ClusterStoreState>()((set, get) => ({
         clusters,
         silhouette: newSilhouette,
         error: null,
+        instrumentAssignments: {},
       });
     } catch (e) {
       set({
@@ -168,6 +175,7 @@ export const useClusterStore = create<ClusterStoreState>()((set, get) => ({
         clusters,
         silhouette: newSilhouette,
         error: null,
+        instrumentAssignments: {},
       });
     } catch (e) {
       set({
@@ -175,6 +183,36 @@ export const useClusterStore = create<ClusterStoreState>()((set, get) => ({
         error: e instanceof Error ? e.message : 'Failed to merge clusters',
       });
     }
+  },
+
+  assignInstrument: (clusterId, instrumentId) => {
+    const { instrumentAssignments } = get();
+    if (instrumentId === null) {
+      const { [clusterId]: _removed, ...rest } = instrumentAssignments;
+      void _removed;
+      set({ instrumentAssignments: rest });
+    } else {
+      set({ instrumentAssignments: { ...instrumentAssignments, [clusterId]: instrumentId } });
+    }
+  },
+
+  skipCluster: (clusterId) => {
+    const { instrumentAssignments } = get();
+    set({ instrumentAssignments: { ...instrumentAssignments, [clusterId]: 'skip' } });
+  },
+
+  setDefaultSuggestions: (suggestions) => {
+    const { instrumentAssignments } = get();
+    const updated = { ...instrumentAssignments };
+    for (const [clusterId, instrumentId] of suggestions) {
+      updated[clusterId] ??= instrumentId;
+    }
+    set({ instrumentAssignments: updated });
+  },
+
+  hasAnyAssignment: () => {
+    const { instrumentAssignments } = get();
+    return Object.values(instrumentAssignments).some((v) => v !== 'skip');
   },
 
   reset: () => {
