@@ -188,3 +188,43 @@ Build the DAW-style timeline view and the full playback engine. This is the "big
 - **Canvas in jsdom**: `HTMLCanvasElement.getContext()` returns `null` — mock it in tests with `vi.spyOn(HTMLCanvasElement.prototype, 'getContext')`.
 - **ResizeObserver in jsdom**: Not provided — mock globally in test setup.
 - **Use `store.subscribe()` (not selectors) for high-frequency canvas rendering** that runs outside React's render cycle (e.g., ProtoTimeline, LiveWaveform).
+
+### Lessons from M6 (Quantization)
+
+#### Quantization Infrastructure Available
+- `quantizationStore` holds: bpm, bpmManualOverride, bpmResult, gridResolution, strength, swingAmount, quantizedHits, playbackMode
+- `PlaybackEngine.playScheduled(instrumentId, when, velocity)` handles timed sample playback with GainNode velocity control
+- `useQuantizedPlayback` implements lookahead scheduling (25ms setInterval, 100ms lookahead window) with before/after comparison
+- `useTimelineRenderer` renders canvas at 60fps using `store.subscribe()` pattern (not React selectors)
+- Pure algorithm functions in `src/audio/quantization/`: `detectBpm()`, `quantizeHits()`, `gridUtils` — no store coupling
+
+#### Cross-Store Pattern Established
+- `quantizationStore.recomputeQuantization()` reads from `useRecordingStore.getState()._onsets` + `useClusterStore.getState()` (clusters, assignments, instrumentAssignments)
+- Original-to-remapped cluster ID mapping: build map via `assignments[cluster.hitIndices[0]]` to translate between clustering output IDs and contiguous ClusterData.id
+
+#### TypeScript/Lint (additional to existing)
+- `Array<T>` syntax forbidden by eslint `array-type` rule — must use `T[]`
+- Import ordering: external → `@/` imports (value+type mixed) → relative imports. CSS modules come before type-only `react` imports in relative group
+- `Float64Array` indexed access returns `number | undefined` with `noUncheckedIndexedAccess` — use `?? 0`
+- CSS module class concatenation: `[styles.a, condition ? styles.b : ''].filter(Boolean).join(' ')` — never template literals
+
+#### M6 Already Implemented These (Reduce M7 Scope)
+The following items from M7's original spec were completed in M6:
+- **7.1 Timeline Rendering**: Canvas-based multi-track renderer (`useTimelineRenderer.ts`), grid lines at current resolution, hit markers colored by instrument, ghost markers at original positions (30% opacity with connecting line), playback cursor (2px blue vertical line)
+- **7.2 Playback Engine**: Lookahead scheduling (`useQuantizedPlayback.ts`), `playScheduled()` on PlaybackEngine singleton — no new AudioContext needed
+- **7.3 Transport Controls**: Play/pause button, stop (skip-back), loop toggle, before/after mode toggle, time display — all in `TransportBar.tsx`
+- **7.7 State Management (partial)**: `quantizationStore` manages quantized hits, playback mode. Playback position tracked via `cursorTimeRef` in the hook.
+
+#### What M7 Should Focus On (Remaining)
+- **7.1 additions**: Track headers (instrument name, color dot), beat/bar ruler along top, zoom controls (Ctrl+scroll, pinch), horizontal scroll
+- **7.2 additions**: Per-track gain nodes for volume, master gain node, seamless loop (schedule next iteration before current ends)
+- **7.4 Track Controls**: Per-track mute/solo/volume sliders — these are NEW
+- **7.5 Timeline Editing**: Drag hits, add hits, delete hits, undo/redo — these are NEW
+- **7.6 Responsive**: Mobile track header collapse, keyboard shortcuts
+- **7.7 additions**: Undo/redo stack, per-track derived state
+
+#### Architecture Notes for M7
+- `TimelineScreen.tsx` already assembles: QuantizationControls (top) → TimelineCanvas (flex:1) → TransportBar (bottom). M7 adds track headers to the left of TimelineCanvas.
+- `useTimelineRenderer.ts` already subscribes to quantizationStore + clusterStore. Extend with track control state (mute/solo/volume).
+- `useQuantizedPlayback.ts` schedules all hits — to add mute/solo, filter hits by track/cluster before scheduling.
+- Canvas rendering already handles DPR scaling, track lane backgrounds, and grid lines. Track headers should be separate DOM elements (not canvas) for accessibility.

@@ -101,8 +101,25 @@
 - Pattern: 6-agent parallel execution (orchestrator + 6 specialist agents) + Test agent
 - See: [releases/mvp/milestone-5-instrument-assignment.md](../../../releases/mvp/milestone-5-instrument-assignment.md)
 
+### 2026-03-13: Milestone 6 -- Quantization Engine
+- **Branch**: `milestone-6/quantization` (from `milestone-5/instrument-assignment`)
+- **Status**: Complete
+- **Files created**: 3 algorithm files (`src/audio/quantization/`: detectBpm.ts, quantizeHits.ts, gridUtils.ts), 1 store (`src/state/quantizationStore.ts`), 3 UI components (QuantizationControls.tsx, TimelineCanvas.tsx, TransportBar.tsx), 2 hooks (useTimelineRenderer.ts, useQuantizedPlayback.ts)
+- **Files modified**: PlaybackEngine.ts (added `playScheduled()`)
+- **Tests**: 438 passing (40 files, +61 new), 0 lint errors, build 86KB app
+- **Key features**: BPM detection (IOI histogram + Gaussian smoothing + ambiguity resolution), grid quantization (6 resolutions, strength 0-100%, swing), canvas timeline with rAF rendering, lookahead-scheduled playback
+- **Benchmarks**: detectBpm 0.13ms, quantizeHits 0.02ms for 500 items
+- **Key learnings**:
+  - Import ordering convention must be enforced consistently
+  - `Array<T>` preferred over `T[]` for complex generics
+  - `Float64Array` needs bounds checking with `noUncheckedIndexedAccess`
+  - IOI histogram is more robust than median IOI for BPM detection
+  - Separate Zustand stores with cross-store reads (via `getState()`) keeps concerns clean
+- Pattern: 4-agent parallel execution (Phase 1) + sequential test agent
+- See: [releases/mvp/milestone-6-quantization.md](../../../releases/mvp/milestone-6-quantization.md)
+
 ## Priorities for Next Session
 
-1. Browser verification of M5 (cluster → assign instruments → skip → more → continue)
-2. Begin Milestone 6: Quantization Engine
-3. Begin Milestone 7: Timeline & Playback
+1. Browser verification of M6 (quantization controls, timeline canvas, transport playback)
+2. Begin Milestone 7: Timeline Enhancement
+3. Begin Milestone 8: Session Management

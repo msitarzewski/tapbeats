@@ -130,6 +130,30 @@ Polish the end-to-end experience, add PWA support for offline use and installabi
 - **InstrumentChips** uses `role="radiogroup"` with proper ARIA — audit for keyboard navigation (arrow keys within group)
 - **SampleBrowser** modal uses existing Modal component — verify focus trap and escape-to-close accessibility
 
+### Lessons from M6 (Quantization)
+
+#### Quantization Infrastructure Available
+- `quantizationStore` holds: bpm, bpmManualOverride, bpmResult, gridResolution, strength, swingAmount, quantizedHits, playbackMode
+- `PlaybackEngine.playScheduled(instrumentId, when, velocity)` handles timed sample playback with GainNode velocity control
+- `useQuantizedPlayback` implements lookahead scheduling (25ms setInterval, 100ms lookahead window) with before/after comparison
+- `useTimelineRenderer` renders canvas at 60fps using `store.subscribe()` pattern (not React selectors)
+- Pure algorithm functions in `src/audio/quantization/`: `detectBpm()`, `quantizeHits()`, `gridUtils` — no store coupling
+
+#### Cross-Store Pattern Established
+- `quantizationStore.recomputeQuantization()` reads from `useRecordingStore.getState()._onsets` + `useClusterStore.getState()` (clusters, assignments, instrumentAssignments)
+- Original-to-remapped cluster ID mapping: build map via `assignments[cluster.hitIndices[0]]` to translate between clustering output IDs and contiguous ClusterData.id
+
+#### TypeScript/Lint (additional to existing)
+- `Array<T>` syntax forbidden by eslint `array-type` rule — must use `T[]`
+- Import ordering: external → `@/` imports (value+type mixed) → relative imports. CSS modules come before type-only `react` imports in relative group
+- `Float64Array` indexed access returns `number | undefined` with `noUncheckedIndexedAccess` — use `?? 0`
+- CSS module class concatenation: `[styles.a, condition ? styles.b : ''].filter(Boolean).join(' ')` — never template literals
+
+#### Animations to Polish (M6)
+- Quantization snap animation: when strength slider changes, hits should animate from old to new position (spring physics per ui-design.md)
+- Ghost marker fade: when toggling before/after, ghost markers should fade in/out smoothly
+- BPM detection confidence indicator could pulse/glow when confidence is high
+
 ### Infrastructure from M2
 - **Reduced motion support**: `useReducedMotion` hook + CSS `@media (prefers-reduced-motion: reduce)` already applied to RecordButton glow, HitFlash, StatsBar bounce, RecordingHeader dot pulse. Extend pattern to all new animations.
 - **ARIA live regions**: RecordingScreen has `role="status"` + `aria-live="polite"` for screen reader announcements. ProcessingOverlay has `role="alert"` + `aria-live="assertive"`. Apply to all dynamic status changes.

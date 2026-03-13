@@ -123,6 +123,29 @@ Final QA, deployment setup, launch preparation, and public release. Ship TapBeat
 - **Test count**: 314 tests as of M4. Target ~500+ by launch with good coverage across all milestones.
 - **Real-world testing needed**: Clustering accuracy with actual taps on varied surfaces (wood, metal, skin) — synthetic test data doesn't capture real-world variance.
 
+### Lessons from M6 (Quantization)
+
+#### Quantization Infrastructure Available
+- `quantizationStore` holds: bpm, bpmManualOverride, bpmResult, gridResolution, strength, swingAmount, quantizedHits, playbackMode
+- `PlaybackEngine.playScheduled(instrumentId, when, velocity)` handles timed sample playback with GainNode velocity control
+- `useQuantizedPlayback` implements lookahead scheduling (25ms setInterval, 100ms lookahead window) with before/after comparison
+- `useTimelineRenderer` renders canvas at 60fps using `store.subscribe()` pattern (not React selectors)
+- Pure algorithm functions in `src/audio/quantization/`: `detectBpm()`, `quantizeHits()`, `gridUtils` — no store coupling
+
+#### Cross-Store Pattern Established
+- `quantizationStore.recomputeQuantization()` reads from `useRecordingStore.getState()._onsets` + `useClusterStore.getState()` (clusters, assignments, instrumentAssignments)
+- Original-to-remapped cluster ID mapping: build map via `assignments[cluster.hitIndices[0]]` to translate between clustering output IDs and contiguous ClusterData.id
+
+#### TypeScript/Lint (additional to existing)
+- `Array<T>` syntax forbidden by eslint `array-type` rule — must use `T[]`
+- Import ordering: external → `@/` imports (value+type mixed) → relative imports. CSS modules come before type-only `react` imports in relative group
+- `Float64Array` indexed access returns `number | undefined` with `noUncheckedIndexedAccess` — use `?? 0`
+- CSS module class concatenation: `[styles.a, condition ? styles.b : ''].filter(Boolean).join(' ')` — never template literals
+
+#### Build Size Tracking
+- M6 added ~12KB to app bundle (74KB → 86KB). Total through M6: 86KB app + 143KB vendor = 229KB (gzipped ~75KB). Still well under 200KB gzipped budget.
+- Test count: 438 as of M6. On track for 500+ by launch.
+
 ### Lessons from M3 (Onset Detection)
 
 #### React Patterns

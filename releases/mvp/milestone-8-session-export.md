@@ -135,6 +135,35 @@ Add persistence — save sessions to IndexedDB so users can return to their beat
 - Each track's instrument assignment determines which sample buffer to use
 - Skipped clusters (`assignment === 'skip'`) should be excluded from export
 
+### Lessons from M6 (Quantization)
+
+#### Quantization Infrastructure Available
+- `quantizationStore` holds: bpm, bpmManualOverride, bpmResult, gridResolution, strength, swingAmount, quantizedHits, playbackMode
+- `PlaybackEngine.playScheduled(instrumentId, when, velocity)` handles timed sample playback with GainNode velocity control
+- `useQuantizedPlayback` implements lookahead scheduling (25ms setInterval, 100ms lookahead window) with before/after comparison
+- `useTimelineRenderer` renders canvas at 60fps using `store.subscribe()` pattern (not React selectors)
+- Pure algorithm functions in `src/audio/quantization/`: `detectBpm()`, `quantizeHits()`, `gridUtils` — no store coupling
+
+#### Cross-Store Pattern Established
+- `quantizationStore.recomputeQuantization()` reads from `useRecordingStore.getState()._onsets` + `useClusterStore.getState()` (clusters, assignments, instrumentAssignments)
+- Original-to-remapped cluster ID mapping: build map via `assignments[cluster.hitIndices[0]]` to translate between clustering output IDs and contiguous ClusterData.id
+
+#### TypeScript/Lint (additional to existing)
+- `Array<T>` syntax forbidden by eslint `array-type` rule — must use `T[]`
+- Import ordering: external → `@/` imports (value+type mixed) → relative imports. CSS modules come before type-only `react` imports in relative group
+- `Float64Array` indexed access returns `number | undefined` with `noUncheckedIndexedAccess` — use `?? 0`
+- CSS module class concatenation: `[styles.a, condition ? styles.b : ''].filter(Boolean).join(' ')` — never template literals
+
+#### Session Data to Persist (M6 additions)
+- `quantizationStore` state must be saved/restored: bpm, bpmManualOverride, gridResolution, strength, swingAmount, playbackMode
+- `quantizedHits` array is derived (recomputed from config + onsets + clusters) — save config, not hits
+- BPM detection runs on load — restore manual override flag to prevent re-detection from overwriting user's BPM
+
+#### WAV Export Integration (M6 additions)
+- `quantizedHits` provides the final hit schedule for offline rendering: each hit has `quantizedTime`, `instrumentId`, `velocity`
+- `PlaybackEngine.getBuffer(instrumentId)` provides AudioBuffers for offline rendering
+- Before/after comparison in export: user should choose whether to export original or quantized timing
+
 ### Export Considerations
 - Build output goes to `dist/` — already .gitignored
 - WAV files are generated client-side — no server needed

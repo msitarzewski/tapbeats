@@ -2,9 +2,9 @@
 
 ## Overall Status
 
-**Phase**: Milestone 5 complete, ready for browser verification.
+**Phase**: Milestone 6 complete, ready for browser verification.
 **Target**: 12-week MVP delivery
-**Last Updated**: 2026-03-12
+**Last Updated**: 2026-03-13
 
 ---
 
@@ -57,15 +57,29 @@
 - 377 tests passing (35 test files, +63 new), 0 lint errors, production build succeeds (74KB app)
 - Pattern: 6 parallel agents (Types/Manifest, SmartDefaults, PlaybackEngine, State, UI, SampleGen) + Test agent
 
+### Milestone 6: Quantization Engine (2026-03-13)
+- **Branch**: `milestone-6/quantization` (from M5)
+- BPM detection via IOI histogram + Gaussian smoothing + ambiguity resolution (not median IOI)
+- Grid quantization with 6 resolutions (1/4, 1/8, 1/8T, 1/16, 1/16T, 1/32), strength 0-100%, swing 0-100%
+- `quantizationStore` Zustand slice with cross-store reads from clusterStore + recordingStore
+- Timeline UI: QuantizationControls, TimelineCanvas (canvas 2D), TransportBar
+- `useTimelineRenderer` hook (requestAnimationFrame canvas loop), `useQuantizedPlayback` hook (lookahead scheduler)
+- `PlaybackEngine.playScheduled()` method for timed sample playback
+- 438 tests passing (40 test files, +61 new), 0 lint errors, production build succeeds (86KB app)
+- Benchmarks: detectBpm 0.13ms, quantizeHits 0.02ms for 500 items
+- Pattern: 4 parallel agents (Phase 1) + sequential test agent
+- Key learnings: import ordering convention, `Array<T>` vs `T[]`, `Float64Array` with `noUncheckedIndexedAccess`
+
 ---
 
 ## Next Up
 
 | Priority | Item | Reference |
 |----------|------|-----------|
-| 1 | Browser verification of M5 | Cluster → assign instruments → skip → continue |
-| 2 | Milestone 6: Quantization Engine | `releases/mvp/milestone-6-quantization.md` |
-| 3 | Milestone 7: Timeline & Playback | `releases/mvp/milestone-7-timeline-playback.md` |
+| 1 | Browser verification of M6 | Quantization controls, timeline canvas, transport playback |
+| 2 | Milestone 7: Timeline Enhancement | `releases/mvp/milestone-7-timeline-playback.md` |
+| 3 | Milestone 8: Session Management | `releases/mvp/milestone-8-session-management.md` |
+| 4 | Milestone 9: Polish & Performance | `releases/mvp/milestone-9-polish.md` |
 
 ---
 
@@ -100,3 +114,7 @@ None.
 | Synthetic WAV samples (not CC0) | Quick to generate, distinguishable; real samples swap in-place later |
 | Smart defaults via weighted distance | Best-effort heuristic; user always overrides; greedy prevents duplicates |
 | Split/merge clears assignments | IDs remap to contiguous; simpler than tracking old→new mapping |
+| IOI histogram BPM (not median IOI) | Histogram + Gaussian smoothing handles tempo ambiguity; median fails on swing/expressive timing |
+| Separate quantizationStore (not extend clusterStore) | SRP: quantization is a distinct concern; cross-store reads via getState() |
+| Canvas 2D for timeline rendering | rAF loop at 60fps; DOM too slow for real-time hit marker updates |
+| playScheduled() method on PlaybackEngine | Lookahead scheduler needs precise timing; separate from immediate playSample() |

@@ -1,22 +1,44 @@
+import { useEffect } from 'react';
+
+import { PlaybackEngine } from '@/audio/playback/PlaybackEngine';
+import { useQuantizedPlayback } from '@/hooks/useQuantizedPlayback';
+import { useQuantizationStore } from '@/state/quantizationStore';
+
+import { QuantizationControls } from './QuantizationControls';
+import { TimelineCanvas } from './TimelineCanvas';
+import { TransportBar } from './TransportBar';
+
 export function TimelineScreen() {
+  const { isPlaying, isLooping, cursorTimeRef, play, pause, stop, toggleLoop } =
+    useQuantizedPlayback();
+
+  useEffect(() => {
+    const engine = PlaybackEngine.getInstance();
+    void engine.init().then(() => {
+      useQuantizationStore.getState().detectAndSetBpm();
+    });
+  }, []);
+
   return (
     <div
       style={{
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        flexDirection: 'column',
         flex: 1,
+        minHeight: 0,
       }}
     >
-      <h1
-        style={{
-          fontSize: 'var(--text-2xl)',
-          fontWeight: 700,
-          color: 'var(--text-primary)',
-        }}
-      >
-        Timeline
-      </h1>
+      <QuantizationControls />
+      <TimelineCanvas cursorTimeRef={cursorTimeRef} />
+      <TransportBar
+        isPlaying={isPlaying}
+        isLooping={isLooping}
+        currentTime={cursorTimeRef.current}
+        onPlay={play}
+        onPause={pause}
+        onStop={stop}
+        onToggleLoop={toggleLoop}
+      />
     </div>
   );
 }

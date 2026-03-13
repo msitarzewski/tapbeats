@@ -121,6 +121,29 @@ export class PlaybackEngine {
     source.start();
   }
 
+  /**
+   * Schedule a sample to play at a specific AudioContext time with velocity control.
+   * Used by the quantized playback system for precise timing.
+   */
+  playScheduled(instrumentId: string, when: number, velocity: number): void {
+    const buffer = this.buffers.get(instrumentId);
+    if (buffer === undefined || this.context === null) return;
+
+    this.ensureResumed();
+
+    const source = this.context.createBufferSource();
+    source.buffer = buffer;
+
+    // Apply velocity via gain node
+    const gainNode = this.context.createGain();
+    gainNode.gain.value = Math.max(0, Math.min(1, velocity));
+
+    source.connect(gainNode);
+    gainNode.connect(this.context.destination);
+
+    source.start(when);
+  }
+
   stop(): void {
     if (this.currentSource !== null) {
       try {

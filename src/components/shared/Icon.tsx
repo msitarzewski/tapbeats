@@ -8,6 +8,10 @@ type IconName =
   | 'help-circle'
   | 'record'
   | 'play'
+  | 'pause'
+  | 'skip-back'
+  | 'skip-forward'
+  | 'repeat'
   | 'chevron-right'
   | 'chevron-down'
   | 'volume-x'
@@ -28,6 +32,10 @@ const PATHS: Record<IconName, string> = {
     'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01',
   record: '',
   play: 'M5 3l14 9-14 9V3z',
+  pause: 'M6 4h4v16H6zM14 4h4v16h-4z',
+  'skip-back': 'M19 20L9 12l10-8v16zM5 19V5',
+  'skip-forward': 'M5 4l10 8-10 8V4zM19 5v14',
+  repeat: 'M17 1l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3',
   'chevron-right': 'M9 18l6-6-6-6',
   'chevron-down': 'M6 9l6 6 6-6',
   'volume-x': 'M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6',
@@ -52,7 +60,7 @@ export function Icon({ name, size = 24, className, ...rest }: IconProps) {
     );
   }
 
-  if (name === 'play') {
+  if (name === 'pause' || name === 'play') {
     return (
       <svg
         width={size}
