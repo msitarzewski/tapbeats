@@ -45,18 +45,33 @@
 
 ---
 
+### Milestone 2: Audio Capture & Microphone Pipeline (2026-03-12)
+- **Branch**: `milestone-2/audio-capture`
+- Audio engine: RingBuffer (circular Float32Array), AudioCapture class (getUserMedia → AudioContext → AudioWorklet pipeline), capture-worklet.js (double-buffer pool, Transferable messaging)
+- State: recordingStore (Zustand) + appStore with mic permission tracking
+- Hooks: useAudioCapture, useRecordingTimer, useReducedMotion, useMicPermission, useWaveformRenderer
+- UI: HomeScreen with RecordButton (80px pulsing circle), RecordingScreen with LiveWaveform (canvas, 60fps), RecordingHeader (timer, back button), StatsBar, StopButton, HitFlash, ProcessingOverlay, MicPermissionOverlay, PermissionDenied screen
+- Shared: Icon component (6 inline SVG icons)
+- Permission flow: pre-prompt overlay → "Got it" triggers getUserMedia → browser prompt → recording or error
+- 88 tests (15 RingBuffer, 17 AudioCapture, 14 recordingStore, 5 appStore, 2 useAudioCapture, 3 HomeScreen, 2 RecordingScreen, 3 LiveWaveform, 3 permission-flow integration, 3 capture-pipeline integration, 1 App)
+- Production build: 37.8KB app + 142.8KB vendor + 13KB CSS
+- **Key fix**: MicPermissionOverlay must show BEFORE calling startRecording() — original implementation auto-started on mount, causing overlay + browser prompt to appear simultaneously
+- **Execution pattern**: 4 parallel agents (audio engine, UI, tests, orchestrator) with orchestrator fixing lint/integration issues across agent outputs
+
+---
+
 ## Current Focus
 
-**Milestone 2: Audio Capture & Microphone Pipeline** (Week 2)
+**Milestone 3: Real-Time Onset Detection** (Week 3)
 
 Deliverables:
-- Microphone permission flow with error handling
-- AudioContext + MediaStream setup
-- AudioWorklet capture processor
-- Ring buffer for audio data transfer
-- Recording UI (live waveform, level meter, timer, stop button)
-- `recordingStore` Zustand slice
-- Auto-stop at 2-minute limit
+- Spectral flux onset detection in AudioWorklet
+- Inline FFT (radix-2 Cooley-Tukey, Hann window)
+- Adaptive threshold (running median * multiplier)
+- Audio snippet extraction (10ms pre + 200ms post onset)
+- OnsetDetector class with configurable sensitivity
+- Hit visual feedback (HitFlash wiring, hitCount increment)
+- Feature extraction (13-dim vector per hit)
 
 ---
 
@@ -64,9 +79,9 @@ Deliverables:
 
 | Priority | Item | Reference |
 |----------|------|-----------|
-| 1 | Milestone 2: Audio Capture | `releases/mvp/milestone-2-audio-capture.md` |
-| 2 | Milestone 3: Onset Detection | `releases/mvp/milestone-3-onset-detection.md` |
-| 3 | Milestone 4: Clustering | `releases/mvp/milestone-4-clustering.md` |
+| 1 | Milestone 3: Onset Detection | `releases/mvp/milestone-3-onset-detection.md` |
+| 2 | Milestone 4: Clustering | `releases/mvp/milestone-4-clustering.md` |
+| 3 | Milestone 5: Instrument Assignment | `releases/mvp/milestone-5-instrument-assignment.md` |
 
 ---
 

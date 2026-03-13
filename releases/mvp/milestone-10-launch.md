@@ -85,9 +85,14 @@ Final QA, deployment setup, launch preparation, and public release. Ship TapBeat
 - `developer-experience.md` — Section 6 (Development workflow)
 - `product-requirements.md` — All NFRs verified
 
-## Implementation Notes from M1
+## Implementation Notes from M1 and M2
 
-### Infrastructure Already in Place
+### Infrastructure from M2
+- **88 tests established**: Strong test baseline. Each milestone adds tests; maintain green suite.
+- **Multi-agent execution pattern**: M2 used 4 parallel agents successfully. Orchestrator must fix lint/integration issues across agent outputs — budget time for this.
+- **Permission/async flow lesson**: Always show informational UI before triggering browser APIs (getUserMedia, etc.). Don't auto-trigger on component mount.
+
+### Infrastructure Already in Place (from M1)
 - GitHub Actions CI/CD: `ci.yml` (lint + typecheck + unit + build on PR), `e2e.yml` (Playwright 3-browser matrix on push to main)
 - `CONTRIBUTING.md` exists with dev commands, code style, PR process, testing requirements
 - `LICENSE` exists as placeholder ("TBD — all rights reserved")

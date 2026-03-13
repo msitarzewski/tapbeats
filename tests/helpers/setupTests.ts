@@ -43,10 +43,33 @@ class MockMediaStreamSourceNode {
   disconnect = vi.fn();
 }
 
+// ---------------------------------------------------------------------------
+// AudioWorkletNode mock
+// ---------------------------------------------------------------------------
+
+class MockAudioWorkletPort {
+  onmessage: ((event: MessageEvent) => void) | null = null;
+  postMessage = vi.fn();
+  addEventListener = vi.fn();
+  removeEventListener = vi.fn();
+  start = vi.fn();
+  close = vi.fn();
+  dispatchEvent = vi.fn(() => true);
+}
+
+class MockAudioWorkletNode {
+  readonly port = new MockAudioWorkletPort();
+  connect = vi.fn().mockReturnThis();
+  disconnect = vi.fn();
+}
+
 class MockAudioContext {
   readonly sampleRate = 44100;
   state: AudioContextState = 'running';
   readonly destination = {} as AudioDestinationNode;
+  readonly audioWorklet = {
+    addModule: vi.fn(() => Promise.resolve()),
+  };
 
   createOscillator = vi.fn(() => new MockOscillatorNode());
   createGain = vi.fn(() => new MockGainNode());
@@ -94,6 +117,19 @@ globalThis.AudioContext = MockAudioContext as unknown as typeof AudioContext;
 (globalThis as Record<string, unknown>).webkitAudioContext =
   MockAudioContext as unknown as typeof AudioContext;
 globalThis.MediaStream = MockMediaStream as unknown as typeof MediaStream;
+globalThis.AudioWorkletNode = MockAudioWorkletNode as unknown as typeof AudioWorkletNode;
+
+// ---------------------------------------------------------------------------
+// navigator.mediaDevices mock
+// ---------------------------------------------------------------------------
+
+Object.defineProperty(navigator, 'mediaDevices', {
+  value: {
+    getUserMedia: vi.fn(() => Promise.resolve(new MockMediaStream())),
+  },
+  writable: true,
+  configurable: true,
+});
 
 // ---------------------------------------------------------------------------
 // Cleanup between tests

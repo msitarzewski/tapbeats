@@ -81,9 +81,15 @@ After recording stops, automatically group similar-sounding hits into clusters u
 - `technical-architecture.md` — Section 5 (Clustering)
 - `ui-design.md` — Cluster review screen
 
-## Implementation Notes from M1
+## Implementation Notes from M1 and M2
 
-### Infrastructure Already in Place
+### Infrastructure from M2
+- **Audio types** (`src/types/audio.ts`): Shared type definitions. Extend with clustering types in same pattern.
+- **Zustand store pattern**: `recordingStore.ts` and `appStore.ts` established. Create `clusterStore.ts` following same `create<T>()(fn)` pattern.
+- **Icon component** (`src/components/shared/Icon.tsx`): Inline SVG icon map — extend with clustering icons.
+- **M2 lint lessons**: Use `interface` not `type` for object shapes (`consistent-type-definitions`). Use `?? 0` for array indexing (`noUncheckedIndexedAccess`). Use `for...of` over indexed loops when only value needed (`prefer-for-of`). Typed casts in tests instead of `as any` chains.
+
+### Infrastructure Already in Place (from M1)
 - Cluster screen stub at `src/components/clustering/ClusterScreen.tsx` — extend it
 - Shared components available: `Button` (3 variants x 3 sizes), `Card` (with selected state), `Modal` (responsive bottom sheet/centered), `Slider`
 - CSS design system: all cluster colors (`--cluster-0` through `--cluster-7`), spacing, radii, transitions in `src/styles/theme.css`

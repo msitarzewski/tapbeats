@@ -32,13 +32,23 @@
 - Pattern: 3-agent parallel execution (orchestrator + frontend agent + DevOps agent)
 - See: [releases/mvp/milestone-1-project-scaffolding.md](../../../releases/mvp/milestone-1-project-scaffolding.md)
 
+### 2026-03-12: Milestone 2 -- Audio Capture & Microphone Pipeline
+- **Branch**: `milestone-2/audio-capture`
+- Full audio capture pipeline: getUserMedia → AudioContext → AudioWorklet → RingBuffer → Zustand store
+- Recording UI: HomeScreen (RecordButton), RecordingScreen (LiveWaveform, timer, stats, stop), permission flow (pre-prompt → browser prompt → recording/error)
+- 88 tests passing across 11 test files (unit + integration)
+- Production build: 37.8KB app + 142.8KB vendor + 13KB CSS
+- **Key fix**: Permission pre-prompt must render before startRecording() call, not during
+- Pattern: 4-agent parallel execution (orchestrator + audio engine + UI + tests)
+- See: [releases/mvp/milestone-2-audio-capture.md](../../../releases/mvp/milestone-2-audio-capture.md)
+
 ## In Progress
 
 - None
 
 ## Priorities for Next Session
 
-1. Review and merge `milestone-1/scaffolding` to main
-2. Begin Milestone 2: Audio Capture & Microphone Pipeline
+1. Review and merge milestone-1 and milestone-2 branches to main
+2. Begin Milestone 3: Real-Time Onset Detection
 3. Decide on open source license
 4. Create GitHub repository (remote)

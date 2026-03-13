@@ -86,9 +86,13 @@ Implement the quantization engine that takes messy human timing and snaps it to 
 - `audio-engineering.md` — Section 5 (Quantization algorithm)
 - `technical-architecture.md` — Section 6 (Quantization engine)
 
-## Implementation Notes from M1
+## Implementation Notes from M1 and M2
 
-### Infrastructure Already in Place
+### Infrastructure from M2
+- **RingBuffer** (`src/audio/capture/RingBuffer.ts`): Reusable circular buffer pattern — could be adapted for onset history or quantization candidate windows.
+- **Store subscription pattern**: High-frequency data (amplitudes) uses `store.subscribe()` outside React to avoid re-render storms. Apply same pattern for real-time quantization preview updates.
+
+### Infrastructure Already in Place (from M1)
 - Quantization engine goes in `src/audio/quantization/` (directory exists)
 - Slider component available for strength control (0-100%), BPM adjustment
 - Button component (3 variants) for grid resolution selector, before/after toggle

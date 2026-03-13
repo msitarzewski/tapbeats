@@ -100,9 +100,15 @@ Build the DAW-style timeline view and the full playback engine. This is the "big
 - `technical-architecture.md` — Section 7 (Playback engine)
 - `ui-design.md` — Timeline/arrangement screen
 
-## Implementation Notes from M1
+## Implementation Notes from M1 and M2
 
-### Infrastructure Already in Place
+### Infrastructure from M2
+- **Canvas rendering**: `useWaveformRenderer.ts` demonstrates the RAF + canvas + store.subscribe() pattern. Timeline renderer should follow the same approach but with more complex drawing (grid, hit markers, cursor).
+- **AudioCapture event emitter**: Typed event emitter pattern in `AudioCapture.ts` — reuse for PlaybackEngine events (onPlay, onStop, onBeat, etc.).
+- **useRecordingTimer**: RAF-based timer hook — similar pattern needed for playback position display.
+- **ResizeObserver + devicePixelRatio**: LiveWaveform handles responsive canvas sizing. Timeline canvas should use the same approach.
+
+### Infrastructure Already in Place (from M1)
 - Timeline screen stub at `src/components/timeline/TimelineScreen.tsx` — extend it
 - Slider component for volume controls, Button for transport controls
 - CSS transitions defined in theme: `--ease-micro` (100ms), `--ease-state` (250ms), `--ease-spring` (300ms), `--ease-slow` (500ms)

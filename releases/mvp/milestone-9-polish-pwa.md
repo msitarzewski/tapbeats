@@ -116,9 +116,15 @@ Polish the end-to-end experience, add PWA support for offline use and installabi
 - `ui-design.md` — Onboarding, micro-interactions, error states
 - `brand-strategy.md` — First-time user experience
 
-## Implementation Notes from M1
+## Implementation Notes from M1 and M2
 
-### Infrastructure Already in Place
+### Infrastructure from M2
+- **Reduced motion support**: `useReducedMotion` hook + CSS `@media (prefers-reduced-motion: reduce)` already applied to RecordButton glow, HitFlash, StatsBar bounce, RecordingHeader dot pulse. Extend pattern to all new animations.
+- **ARIA live regions**: RecordingScreen has `role="status"` + `aria-live="polite"` for screen reader announcements. ProcessingOverlay has `role="alert"` + `aria-live="assertive"`. Apply to all dynamic status changes.
+- **Error screens**: PermissionDenied component shows full-screen error with retry. Use as pattern for other error states (unsupported browser, storage full, etc.).
+- **Production build baseline**: 37.8KB app + 142.8KB vendor + 13KB CSS (total ~193KB, well under 200KB budget after M2).
+
+### Infrastructure Already in Place (from M1)
 - Playwright config has 5 browser projects (Chromium, Firefox, WebKit, mobile Chrome, mobile Safari) — ready for cross-browser E2E
 - GitHub Actions CI runs lint + typecheck + unit tests + build on PR; E2E on push to main
 - CSS `animations.css` has base keyframes (fadeIn, slideUp, scaleSpring, pulse, shimmer) — extend for polish

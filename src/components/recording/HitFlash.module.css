@@ -1,0 +1,39 @@
+.flash {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0;
+}
+
+.flashActive {
+  animation: vignette 250ms ease-out forwards;
+}
+
+@keyframes vignette {
+  0% {
+    opacity: 1;
+    box-shadow: inset 0 0 60px 20px var(--accent-primary-muted);
+  }
+  100% {
+    opacity: 0;
+    box-shadow: inset 0 0 60px 20px var(--accent-primary-muted);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flashActive {
+    animation: borderFlash 200ms ease-out forwards;
+  }
+
+  @keyframes borderFlash {
+    0% {
+      opacity: 1;
+      border: 2px solid var(--accent-primary);
+    }
+    100% {
+      opacity: 0;
+      border: 2px solid var(--accent-primary);
+    }
+  }
+}

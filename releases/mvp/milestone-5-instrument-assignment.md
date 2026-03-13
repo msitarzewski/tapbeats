@@ -88,9 +88,14 @@ Build the sample library and instrument assignment flow. Users browse available 
 - `technical-architecture.md` — Section 7 (Playback engine)
 - `ui-design.md` — Cluster review / instrument assignment screen
 
-## Implementation Notes from M1
+## Implementation Notes from M1 and M2
 
-### Infrastructure Already in Place
+### Infrastructure from M2
+- **Audio types pattern**: `src/types/audio.ts` shows how to define shared interfaces/constants. Follow same pattern for sample/instrument types.
+- **Event emitter pattern**: `AudioCapture` class uses typed Map-based event emitter — reuse for playback engine events.
+- **Canvas rendering pattern**: `useWaveformRenderer.ts` shows RAF loop + store subscription outside React — apply same pattern for sample waveform previews.
+
+### Infrastructure Already in Place (from M1)
 - Sample files go in `src/assets/samples/` (directory exists) or `public/` for runtime loading
 - Playback engine module goes in `src/audio/playback/` (directory exists)
 - Modal component available for instrument browser (responsive bottom sheet on mobile, centered on desktop)

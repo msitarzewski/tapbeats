@@ -1,6 +1,29 @@
 import { vi } from 'vitest';
 
 /**
+ * Factory: create a mock AudioWorkletNode-like object for individual test control.
+ */
+export function createMockAudioWorkletNode() {
+  const port = {
+    onmessage: null as ((event: MessageEvent) => void) | null,
+    postMessage: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    start: vi.fn(),
+    close: vi.fn(),
+    dispatchEvent: vi.fn(() => true),
+  };
+
+  const node = {
+    port,
+    connect: vi.fn().mockReturnThis(),
+    disconnect: vi.fn(),
+  };
+
+  return { node, port };
+}
+
+/**
  * Factory: create a mock AudioContext-like object for individual test control.
  *
  * Use this when you need to spy on or customise AudioContext behaviour beyond
@@ -56,6 +79,9 @@ export function createMockAudioContext() {
       return state;
     },
     destination: {} as AudioDestinationNode,
+    audioWorklet: {
+      addModule: vi.fn(() => Promise.resolve()),
+    },
     createOscillator: vi.fn(() => ({ ...oscillatorNode })),
     createGain: vi.fn(() => ({ ...gainNode })),
     createAnalyser: vi.fn(() => ({ ...analyserNode })),

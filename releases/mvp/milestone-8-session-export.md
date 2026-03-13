@@ -93,9 +93,14 @@ Add persistence — save sessions to IndexedDB so users can return to their beat
 - `technical-architecture.md` — Section 8 (State management), Section 9 (Session persistence)
 - `ui-design.md` — Home screen, Settings screen
 
-## Implementation Notes from M1
+## Implementation Notes from M1 and M2
 
-### Infrastructure Already in Place
+### Infrastructure from M2
+- **HomeScreen** (`src/components/app/HomeScreen.tsx`): Currently has title + RecordButton. Extend with session list below the record button.
+- **Icon component**: Already has mic, arrow-left, square, etc. Extend with session/export icons (download, trash, folder).
+- **Pre-prompt overlay pattern**: MicPermissionOverlay shows informational UI before triggering async operations. Use same pattern for destructive actions (delete session confirmation).
+
+### Infrastructure Already in Place (from M1)
 - Home screen stub at `src/components/app/HomeScreen.tsx` — extend for session list
 - Settings screen stub at `src/components/session/SettingsScreen.tsx` — extend
 - Card component for session list items (has selected state, onClick, ARIA)
