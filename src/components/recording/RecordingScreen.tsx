@@ -1,20 +1,35 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { useAudioCapture } from '@/hooks/useAudioCapture';
+import { useProcessing } from '@/hooks/useProcessing';
 
 import { HitFlash } from './HitFlash';
 import { LiveWaveform } from './LiveWaveform';
 import { MicPermissionOverlay } from './MicPermissionOverlay';
 import { PermissionDenied } from './PermissionDenied';
 import { ProcessingOverlay } from './ProcessingOverlay';
+import { ProtoTimeline } from './ProtoTimeline';
 import { RecordingHeader } from './RecordingHeader';
 import styles from './RecordingScreen.module.css';
+import { SensitivityControl } from './SensitivityControl';
 import { StatsBar } from './StatsBar';
 import { StopButton } from './StopButton';
 
 export function RecordingScreen() {
   const { status, error, startRecording, stopRecording } = useAudioCapture();
   const [showPrePrompt, setShowPrePrompt] = useState(true);
+  const navigate = useNavigate();
+
+  useProcessing(44100);
+
+  // Navigate away when processing completes
+  useEffect(() => {
+    if (status === 'complete') {
+      // TODO M4+: navigate to /review for clustering
+      navigate('/');
+    }
+  }, [status, navigate]);
 
   const handleStop = useCallback(() => {
     stopRecording();
@@ -64,7 +79,9 @@ export function RecordingScreen() {
       <div className={styles.content}>
         <div className={styles.middle}>
           <LiveWaveform />
+          <ProtoTimeline />
           <StatsBar />
+          <SensitivityControl />
         </div>
 
         <div className={styles.bottom}>
@@ -77,7 +94,6 @@ export function RecordingScreen() {
       {/* ARIA live region for screen reader announcements */}
       <div className={styles.srOnly} role="status" aria-live="polite" aria-atomic="true">
         {status === 'recording' ? 'Recording in progress' : ''}
-        {status === 'complete' ? 'Recording complete' : ''}
       </div>
     </div>
   );

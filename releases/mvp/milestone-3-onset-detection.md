@@ -120,3 +120,12 @@ Implement real-time onset (hit) detection that runs during recording. Every time
 ### Performance Testing
 - Coverage thresholds are 80% — onset detection code will be measured
 - Vitest `pool: 'forks'` provides test isolation — safe for AudioWorklet simulation
+
+### Lessons from M3 Implementation (post-hoc)
+- **Spectral flux alone is insufficient for onset gating.** Ambient microphone noise produces flux values of 0.3-0.7 regularly. Dual gating required: flux threshold (>0.5) AND RMS energy gate (>0.01).
+- **Never pass `ref.current` to hooks as a reactive dependency.** React refs don't trigger re-renders. Wire event listeners directly where the instance is created.
+- **Never use `setTimeout` chains inside `useEffect`.** React cleanup kills them between calls. Process synchronously or use Web Workers for heavy work.
+- **Always handle all status values in conditional renders.** Missing `'complete'` handler caused stop to appear broken (fell through to recording view).
+- **Worklet files in `public/` may be cached by the browser.** Hard reload needed after changes. Vite HMR does not apply to AudioWorklet modules.
+- **Chrome DevTools MCP is invaluable** for debugging AudioWorklet + React integration at runtime.
+- **5 runtime bugs were found** that passed all 205 unit/integration tests. Runtime testing with real browser + microphone is essential.

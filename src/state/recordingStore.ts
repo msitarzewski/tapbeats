@@ -1,7 +1,13 @@
 import { create } from 'zustand';
 
 import type { RingBuffer } from '@/audio/capture/RingBuffer';
-import type { AudioCaptureError, RecordingState } from '@/types/audio';
+import type {
+  AudioCaptureError,
+  AudioFeatures,
+  DetectedHit,
+  RecordingState,
+  SensitivityLevel,
+} from '@/types/audio';
 
 interface RecordingStoreState {
   // Serializable state
@@ -14,6 +20,9 @@ interface RecordingStoreState {
   // Non-serializable (excluded from persistence)
   _rawAudioBuffer: RingBuffer | null;
   _amplitudes: number[];
+  _onsets: DetectedHit[];
+  _sensitivity: SensitivityLevel;
+  _onsetTimestamps: number[];
 
   // Actions
   setStatus: (status: RecordingState) => void;
@@ -23,6 +32,9 @@ interface RecordingStoreState {
   updateAmplitudes: (amplitudes: number[]) => void;
   setError: (error: AudioCaptureError) => void;
   setRawAudioBuffer: (buffer: RingBuffer | null) => void;
+  addOnset: (hit: DetectedHit) => void;
+  setSensitivity: (level: SensitivityLevel) => void;
+  updateHitFeatures: (index: number, features: AudioFeatures) => void;
   reset: () => void;
 }
 
@@ -34,6 +46,9 @@ const INITIAL_STATE = {
   error: null,
   _rawAudioBuffer: null,
   _amplitudes: [] as number[],
+  _onsets: [] as DetectedHit[],
+  _sensitivity: 'medium' as SensitivityLevel,
+  _onsetTimestamps: [] as number[],
 };
 
 export const useRecordingStore = create<RecordingStoreState>()((set) => ({
@@ -67,7 +82,29 @@ export const useRecordingStore = create<RecordingStoreState>()((set) => ({
     set({ _rawAudioBuffer: buffer });
   },
 
+  addOnset: (hit) => {
+    set((state) => ({
+      _onsets: [...state._onsets, hit],
+      _onsetTimestamps: [...state._onsetTimestamps, hit.onset.timestamp],
+      hitCount: state.hitCount + 1,
+    }));
+  },
+
+  setSensitivity: (level) => {
+    set({ _sensitivity: level });
+  },
+
+  updateHitFeatures: (index, features) => {
+    set((state) => {
+      const onsets = [...state._onsets];
+      const existing = onsets[index];
+      if (existing === undefined) return state;
+      onsets[index] = { ...existing, features };
+      return { _onsets: onsets };
+    });
+  },
+
   reset: () => {
-    set({ ...INITIAL_STATE, _amplitudes: [] });
+    set({ ...INITIAL_STATE, _amplitudes: [], _onsets: [], _onsetTimestamps: [] });
   },
 }));

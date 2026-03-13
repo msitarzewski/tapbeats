@@ -3,7 +3,8 @@ import { useCallback, useEffect, useRef } from 'react';
 import { AudioCapture } from '@/audio/capture/AudioCapture';
 import { RingBuffer } from '@/audio/capture/RingBuffer';
 import { useRecordingStore } from '@/state/recordingStore';
-import type { AudioCaptureError } from '@/types/audio';
+import type { AudioCaptureError, OnsetEvent, SensitivityLevel } from '@/types/audio';
+import { SENSITIVITY_PRESETS } from '@/types/audio';
 
 const MAX_DURATION_SECONDS = 120;
 const TIMER_INTERVAL_MS = 100;
@@ -22,12 +23,15 @@ export function useAudioCapture() {
     hitCount,
     peakLevel,
     error,
+    _sensitivity,
     setStatus,
     updateElapsedTime,
     updatePeakLevel,
     updateAmplitudes,
     setError,
     setRawAudioBuffer,
+    setSensitivity,
+    addOnset,
     reset,
   } = useRecordingStore();
 
@@ -42,8 +46,6 @@ export function useAudioCapture() {
     }
 
     setStatus('processing');
-    // In M2, processing is instant (no onset detection yet)
-    setStatus('complete');
   }, [setStatus]);
 
   const startRecording = useCallback(async () => {
@@ -85,6 +87,10 @@ export function useAudioCapture() {
       setError(err);
     });
 
+    capture.on('onset', (onset: OnsetEvent) => {
+      addOnset({ onset, features: null });
+    });
+
     capture.on('stateChange', (state) => {
       if (state === 'active') {
         setStatus('recording');
@@ -118,9 +124,21 @@ export function useAudioCapture() {
     updatePeakLevel,
     updateAmplitudes,
     setError,
+    addOnset,
     updateElapsedTime,
     stopRecording,
   ]);
+
+  // Forward sensitivity changes to active capture
+  const handleSensitivityChange = useCallback(
+    (level: SensitivityLevel) => {
+      setSensitivity(level);
+      if (captureRef.current !== null && captureRef.current.state === 'active') {
+        captureRef.current.updateSensitivity(SENSITIVITY_PRESETS[level]);
+      }
+    },
+    [setSensitivity],
+  );
 
   // Cleanup on unmount
   useEffect(() => {
@@ -143,7 +161,10 @@ export function useAudioCapture() {
     hitCount,
     peakLevel,
     error,
+    sensitivity: _sensitivity,
+    captureRef,
     startRecording,
     stopRecording,
+    setSensitivity: handleSensitivityChange,
   };
 }

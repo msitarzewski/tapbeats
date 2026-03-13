@@ -123,3 +123,52 @@ export function createMockMediaStream() {
 
   return { stream, track };
 }
+
+/**
+ * Factory: create a mock AudioWorkletNode-like object that simulates
+ * onset detection messages (tap-processor worklet protocol).
+ */
+export function createMockOnsetWorkletNode() {
+  const port = {
+    onmessage: null as ((event: MessageEvent) => void) | null,
+    postMessage: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    start: vi.fn(),
+    close: vi.fn(),
+    dispatchEvent: vi.fn(() => true),
+  };
+
+  const node = {
+    port,
+    connect: vi.fn().mockReturnThis(),
+    disconnect: vi.fn(),
+  };
+
+  return { node, port };
+}
+
+/**
+ * Fire an onset message event on a mock port, simulating the
+ * tap-processor worklet posting an onset detection.
+ */
+export function simulateOnsetEvent(
+  port: { onmessage: ((event: MessageEvent) => void) | null },
+  timestamp: number,
+  strength: number,
+  snippet?: Float32Array,
+): void {
+  const snippetData = snippet ?? new Float32Array(9261);
+  const messageEvent = new MessageEvent('message', {
+    data: {
+      type: 'onset',
+      timestamp,
+      strength,
+      snippet: snippetData,
+    },
+  });
+
+  if (port.onmessage !== null) {
+    port.onmessage(messageEvent);
+  }
+}

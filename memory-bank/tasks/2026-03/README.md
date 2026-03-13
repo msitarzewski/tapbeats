@@ -42,13 +42,29 @@
 - Pattern: 4-agent parallel execution (orchestrator + audio engine + UI + tests)
 - See: [releases/mvp/milestone-2-audio-capture.md](../../../releases/mvp/milestone-2-audio-capture.md)
 
-## In Progress
-
-- None
+### 2026-03-12: Milestone 3 -- Real-Time Onset Detection
+- **Branch**: `milestone-3/onset-detection` (from M2 commit `46ee54a`)
+- **Status**: Complete, NOT YET COMMITTED
+- Created ~25 new files: FFT, dsp-utils, FeatureExtractor, estimateBpm, tap-processor.js worklet, 4 hooks, ProtoTimeline + CSS, SensitivityControl + CSS, 8 test files + fixtures
+- Modified ~8 files: audio.ts types, recordingStore, AudioCapture, useAudioCapture, RecordingScreen, StatsBar, existing test/mock files
+- 205 tests passing (18 files), 0 lint errors, build succeeds
+- **Bugs found & fixed**:
+  1. False onsets from ambient noise (threshold 0.001→0.05→0.5 + RMS energy gate)
+  2. Onset events never captured (ref.current not reactive, moved listener to useAudioCapture)
+  3. Processing stuck on "Analyzing taps..." (setTimeout killed by React cleanup, made synchronous)
+  4. Stop appeared to do nothing (complete status fell through to recording view, added navigate)
+  5. Still too many false onsets with flux-only gating (added RMS energy gate rmsEnergy > 0.01)
+- **Key learnings**:
+  - Spectral flux alone is insufficient for onset gating — ambient mic noise produces high flux values (0.3-0.7 typical). Dual gating with RMS energy is required.
+  - React refs are NOT reactive — never pass `ref.current` to hooks expecting updates.
+  - React effect cleanup kills `setTimeout` chains — process synchronously or use Web Workers.
+  - AudioWorklet files in `public/` may be cached by browser — hard reload needed after changes.
+  - Chrome DevTools MCP is invaluable for runtime debugging AudioWorklet + React integration.
+- Pattern: 4-agent parallel execution (DSP + Integration + UI + Tests with orchestrator)
+- See: [releases/mvp/milestone-3-onset-detection.md](../../../releases/mvp/milestone-3-onset-detection.md)
 
 ## Priorities for Next Session
 
-1. Review and merge milestone-1 and milestone-2 branches to main
-2. Begin Milestone 3: Real-Time Onset Detection
-3. Decide on open source license
-4. Create GitHub repository (remote)
+1. Commit M3
+2. Merge milestone branches to main (M1, M2, M3)
+3. Begin Milestone 4: Clustering

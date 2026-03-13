@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { useBpmEstimate } from '@/hooks/useBpmEstimate';
 import { useRecordingStore } from '@/state/recordingStore';
 
 import styles from './StatsBar.module.css';
 
 export function StatsBar() {
   const hitCount = useRecordingStore((s) => s.hitCount);
+  const bpm = useBpmEstimate();
   const [bouncing, setBouncing] = useState(false);
   const prevHitRef = useRef(0);
 
@@ -36,7 +38,7 @@ export function StatsBar() {
       </div>
       <div className={styles.stat}>
         <span className={styles.label}>BPM:</span>
-        <span className={styles.value}>~-- (est.)</span>
+        <span className={styles.value}>{bpm !== null ? `~${String(bpm)} (est.)` : '--'}</span>
       </div>
     </div>
   );

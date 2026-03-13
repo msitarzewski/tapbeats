@@ -76,7 +76,7 @@ describe('AudioCapture', () => {
       const ctx = mockCtor.mock.calls[0]![0] as {
         audioWorklet: { addModule: ReturnType<typeof vi.fn> };
       };
-      expect(ctx.audioWorklet.addModule).toHaveBeenCalledWith('/worklets/capture-worklet.js');
+      expect(ctx.audioWorklet.addModule).toHaveBeenCalledWith('/worklets/tap-processor.js');
     });
 
     it('connects source to worklet node', async () => {

@@ -100,7 +100,7 @@ Build the DAW-style timeline view and the full playback engine. This is the "big
 - `technical-architecture.md` — Section 7 (Playback engine)
 - `ui-design.md` — Timeline/arrangement screen
 
-## Implementation Notes from M1 and M2
+## Implementation Notes from Previous Milestones
 
 ### Infrastructure from M2
 - **Canvas rendering**: `useWaveformRenderer.ts` demonstrates the RAF + canvas + store.subscribe() pattern. Timeline renderer should follow the same approach but with more complex drawing (grid, hit markers, cursor).
@@ -133,3 +133,27 @@ Build the DAW-style timeline view and the full playback engine. This is the "big
 ### Keyboard Shortcuts Note
 - No keyboard event handling infrastructure exists yet — build from scratch
 - Consider a custom hook (`useKeyboardShortcuts`) in `src/hooks/`
+
+### Lessons from M3 (Onset Detection)
+
+#### React Patterns
+- **Never pass `ref.current` to hooks as a reactive dependency.** React refs don't trigger re-renders, so hooks receiving `ref.current` always get the initial value (usually `null`). Wire event listeners directly where the instance is created (e.g., in `startRecording()` alongside other listeners).
+- **Never use `setTimeout` chains inside `useEffect`.** React's effect cleanup runs between setTimeout calls (especially in StrictMode), killing the chain. For post-processing work triggered by state changes, process synchronously within the effect body wrapped in try/catch. If work is too heavy (>3s), use a Web Worker instead.
+- **Always handle all status values in conditional renders.** If a component renders different views based on status (idle, recording, processing, complete), ensure every status has a handler. Missing handlers cause the component to fall through to an unexpected default view.
+
+#### AudioWorklet Patterns
+- **Worklet files in `public/` may be cached by the browser.** After modifying a worklet file, a hard reload (Cmd+Shift+R) or cache-busting query param is needed. Vite's HMR does not apply to AudioWorklet modules.
+- **Spectral flux alone is insufficient for onset gating.** Ambient microphone noise produces spectral flux values of 0.3-0.7 regularly. Use dual gating: spectral flux threshold (>0.5) AND RMS energy gate (>0.01). The energy gate rejects quiet noise regardless of spectral variation.
+- **AudioWorklet JS rules**: `var` declarations, old-style `function` syntax, NO arrow functions, NO template literals, NO `console.log` (not available in worklet scope). Add `// @ts-nocheck` and `/* eslint-disable no-undef */` at top.
+- **Pre-allocate all buffers in worklet constructor.** Never allocate in `process()` — it runs on the audio thread and allocations cause glitches. Only exception: re-allocating snippet buffer after Transferable transfer.
+
+#### DSP & TypeScript
+- **Use `?? 0` for typed array access** to satisfy `no-non-null-assertion` lint rule. E.g., `arr[i] ?? 0` instead of `arr[i]!`.
+- **Use dot notation for object property access** (`f.rms`) not bracket notation (`f["rms"]`) to satisfy `dot-notation` lint rule.
+- **Synchronous feature extraction is fast enough**: ~5ms per hit × 500 max = ~2.5s worst case. Acceptable since processing overlay is shown.
+
+#### Testing & Debugging
+- **Chrome DevTools MCP is highly effective** for debugging AudioWorklet + React integration issues at runtime. Use it to inspect console logs, take snapshots, and interact with the UI programmatically.
+- **Canvas in jsdom**: `HTMLCanvasElement.getContext()` returns `null` — mock it in tests with `vi.spyOn(HTMLCanvasElement.prototype, 'getContext')`.
+- **ResizeObserver in jsdom**: Not provided — mock globally in test setup.
+- **Use `store.subscribe()` (not selectors) for high-frequency canvas rendering** that runs outside React's render cycle (e.g., ProtoTimeline, LiveWaveform).

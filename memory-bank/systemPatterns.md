@@ -57,17 +57,25 @@ Five independent **Zustand store slices**, each created with `create()`. No comb
 
 ## Audio Processing Patterns
 
-### Onset Detection
-- **Method**: Spectral flux with adaptive threshold (running median * multiplier)
-- **FFT**: 2048-point with 1024-sample hop (23.2ms resolution at 44.1kHz), Hann window
-- **Threshold**: `max(FLOOR=0.001, median(last 10 flux values) * MULTIPLIER)`, default multiplier=2.0
-- **Cooldown**: 50ms minimum inter-onset gap (supports up to 20 taps/sec)
-- **Output**: `OnsetEvent { timestamp, strength (flux/threshold), audioSnippet (Transferable) }`
+### Onset Detection (implemented in M3)
+- **Method**: Spectral flux with adaptive threshold + RMS energy gate (dual gating)
+- **FFT**: 1024-point with 256-sample hop (~5.8ms resolution at 44.1kHz), Hann window
+- **Gating** (all must be true):
+  1. `flux > adaptiveThreshold` (running median of last N flux values × multiplier)
+  2. `flux > 0.5` (absolute flux floor — ambient noise regularly produces 0.3-0.7)
+  3. `rmsEnergy > 0.01` (amplitude energy gate — rejects quiet ambient noise)
+  4. `timeSinceLastOnset >= minInterOnsetMs` (cooldown)
+- **Sensitivity presets**: high (window=8, mult=1.2, gap=30ms), medium (window=10, mult=1.5, gap=50ms), low (window=15, mult=2.0, gap=80ms)
+- **Output**: `OnsetEvent { timestamp, strength (flux/threshold), snippetBuffer (Transferable Float32Array) }`
+- **Worklet**: `tap-processor.js` — all detection runs on audio thread, posts onset + buffer + amplitude messages
+- **Key learning**: Spectral flux alone is insufficient — ambient mic noise has high spectral variation between frames. RMS energy gate is essential for noise rejection.
 
-### Feature Extraction
-- **Per-hit vector** (13 dimensions): spectral centroid, spectral rolloff, ZCR, RMS energy, attack time, decay time, MFCC[0..6]
-- **Normalization**: Z-score (mean/stddev per dimension across session); robust to outliers
-- **Snippet window**: 10ms pre-onset + 200ms post-onset (~9,261 samples at 44.1kHz)
+### Feature Extraction (implemented in M3)
+- **Per-hit vector** (12 dimensions): RMS, spectral centroid, spectral rolloff, spectral flatness, ZCR, attack time, decay time, MFCC[0..4]
+- **Normalization**: Z-score (mean/stddev per dimension across session) applied post-recording
+- **Snippet window**: 10ms pre-onset + 200ms post-onset (441 + 8820 = 9,261 samples at 44.1kHz)
+- **Processing**: Synchronous in useEffect when status='processing', wrapped in try/catch for reliability
+- **BPM estimation**: Median of inter-onset intervals from last 16 onsets, outlier rejection (>2× median), clamped to [40, 240]
 
 ### Clustering
 - **Algorithm**: K-means++ initialization, Lloyd's iteration (max 100 iters, convergence threshold 0.001)

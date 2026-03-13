@@ -2,7 +2,9 @@ import type {
   AudioCaptureConfig,
   AudioCaptureError,
   AudioCaptureState,
-  CaptureWorkletMessage,
+  OnsetEvent,
+  SensitivityParams,
+  TapProcessorMessage,
 } from '@/types/audio';
 import { DEFAULT_CAPTURE_CONFIG } from '@/types/audio';
 
@@ -10,6 +12,7 @@ interface AudioCaptureEventMap {
   stateChange: AudioCaptureState;
   buffer: Float32Array;
   error: AudioCaptureError;
+  onset: OnsetEvent;
 }
 
 type EventCallback<T> = (data: T) => void;
@@ -27,10 +30,12 @@ export class AudioCapture {
     stateChange: Set<EventCallback<AudioCaptureState>>;
     buffer: Set<EventCallback<Float32Array>>;
     error: Set<EventCallback<AudioCaptureError>>;
+    onset: Set<EventCallback<OnsetEvent>>;
   } = {
     stateChange: new Set(),
     buffer: new Set(),
     error: new Set(),
+    onset: new Set(),
   };
 
   constructor(config: Partial<AudioCaptureConfig> = {}) {
@@ -43,6 +48,10 @@ export class AudioCapture {
 
   get sampleRate(): number {
     return this._audioContext?.sampleRate ?? this._config.sampleRate;
+  }
+
+  getAudioContext(): AudioContext | null {
+    return this._audioContext;
   }
 
   on<K extends keyof AudioCaptureEventMap>(
@@ -105,17 +114,24 @@ export class AudioCapture {
       }
 
       // Load worklet
-      await this._audioContext.audioWorklet.addModule('/worklets/capture-worklet.js');
+      await this._audioContext.audioWorklet.addModule('/worklets/tap-processor.js');
 
       // Create nodes
       this._sourceNode = this._audioContext.createMediaStreamSource(this._stream);
-      this._workletNode = new AudioWorkletNode(this._audioContext, 'capture-worklet');
+      this._workletNode = new AudioWorkletNode(this._audioContext, 'tap-processor');
 
       // Handle messages from worklet
-      this._workletNode.port.onmessage = (event: MessageEvent<CaptureWorkletMessage>) => {
+      this._workletNode.port.onmessage = (event: MessageEvent<TapProcessorMessage>) => {
         const msg = event.data;
         if (msg.type === 'buffer') {
           this._emit('buffer', msg.buffer);
+        } else if (msg.type === 'onset') {
+          const onsetEvent: OnsetEvent = {
+            timestamp: msg.timestamp,
+            strength: msg.strength,
+            snippetBuffer: msg.snippet,
+          };
+          this._emit('onset', onsetEvent);
         } else if (msg.type === 'error') {
           this._emitError('UNKNOWN', msg.message);
         }
@@ -142,11 +158,18 @@ export class AudioCapture {
     this._setState('idle');
   }
 
+  updateSensitivity(params: SensitivityParams): void {
+    if (this._workletNode !== null) {
+      this._workletNode.port.postMessage({ type: 'updateSensitivity', params });
+    }
+  }
+
   dispose(): void {
     this.stop();
     this._listeners.stateChange.clear();
     this._listeners.buffer.clear();
     this._listeners.error.clear();
+    this._listeners.onset.clear();
   }
 
   private _cleanup(): void {

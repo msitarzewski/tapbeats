@@ -15,6 +15,11 @@
 11. [No SSL for local development](#2026-03-12-no-ssl-for-local-development)
 12. [Appendix A as canonical design tokens](#2026-03-12-appendix-a-as-canonical-design-tokens)
 13. [Separate tsconfig for tests](#2026-03-12-separate-tsconfig-for-tests)
+14. [New tap-processor.js worklet](#2026-03-12-new-tap-processorjs-worklet-not-extend-capture-workletjs)
+15. [Onset listeners in useAudioCapture](#2026-03-12-onset-listeners-wired-in-useaudiocapture-not-separate-hook)
+16. [Synchronous feature processing](#2026-03-12-synchronous-feature-processing-not-settimeout-batches)
+17. [RMS energy gate for onset detection](#2026-03-12-rms-energy-gate-for-onset-detection)
+18. [Complete status navigates home](#2026-03-12-complete-status-navigates-home)
 
 ---
 
@@ -104,6 +109,30 @@
 **Consequences**: (+) Single canonical source, consistent naming across all milestones. (-) Milestone-1 spec section 1.6 is now inaccurate (documented in M1 implementation notes).
 **References**: `src/styles/theme.css`, `docs/sections/ui-design.md` lines 1503-1591
 
+### 2026-03-12: New tap-processor.js worklet (not extend capture-worklet.js)
+**Status**: Approved
+**Context**: M3 onset detection needs FFT, spectral flux, adaptive threshold, and snippet extraction in the AudioWorklet. The existing capture-worklet.js has a single responsibility: buffer raw PCM and post to main thread.
+**Decision**: Create a new `tap-processor.js` worklet with all onset detection logic. AudioCapture.ts loads tap-processor instead of capture-worklet during recording. tap-processor posts both `buffer` events (for waveform, same as before) and `onset` events (new).
+**Alternatives**: Extend capture-worklet.js with onset detection (rejected: violates SRP, capture-worklet has fundamentally different responsibilities, would create a monolithic worklet).
+**Consequences**: (+) Clean separation of concerns, capture-worklet untouched for future raw-PCM use. (-) AudioCapture tests needed updating to expect tap-processor.js instead of capture-worklet.js.
+**References**: `public/worklets/tap-processor.js`, `src/audio/capture/AudioCapture.ts:117`
+
+### 2026-03-12: Onset listeners wired in useAudioCapture (not separate hook)
+**Status**: Approved
+**Context**: Initial implementation passed `captureRef.current` to a `useOnsetDetection` hook. But React refs don't trigger re-renders, so the hook always received `null` — onset events were silently never captured.
+**Decision**: Wire onset event listener directly in `useAudioCapture.startRecording()`, alongside existing buffer/error/stateChange listeners. This matches the established pattern and ensures the listener is connected when the capture instance is created.
+**Alternatives**: Use state instead of ref for capture instance (rejected: would cause re-renders on every capture creation); Pass ref object to hook (possible but adds complexity for no benefit).
+**Consequences**: (+) Onset events reliably captured, matches existing listener pattern. (-) `useOnsetDetection.ts` hook exists but is unused (can be removed).
+**References**: `src/hooks/useAudioCapture.ts:88-90`
+
+### 2026-03-12: Synchronous feature processing (not setTimeout batches)
+**Status**: Approved
+**Context**: `useProcessing` used `setTimeout(() => processBatch(next), 0)` to yield between batches. React's effect cleanup ran between setTimeout calls (especially in StrictMode), setting `cancelled = true` and preventing `setStatus('complete')` from ever being reached.
+**Decision**: Process all onsets synchronously within the useEffect, wrapped in try/catch. `setStatus('complete')` always fires regardless of errors.
+**Alternatives**: Web Worker for processing (overkill for <500 hits); requestIdleCallback (same cleanup issue); batched with refs instead of effect deps (more complex).
+**Consequences**: (+) Reliable completion, simple code, fast enough for typical sessions. (-) Blocks main thread during processing (~5ms per hit × 500 max = ~2.5s worst case). Acceptable since processing overlay is shown.
+**References**: `src/hooks/useProcessing.ts`
+
 ### 2026-03-12: Separate tsconfig for tests
 **Status**: Approved
 **Context**: Main `tsconfig.json` excludes `tests/` to keep production builds clean. But ESLint with `@typescript-eslint/parser` requires a tsconfig that includes the files being linted. Test files were failing ESLint parsing.
@@ -111,3 +140,19 @@
 **Alternatives**: Include tests in main tsconfig (rejected: would affect production build, risks including test code in bundle); ignore ESLint for test files (rejected: loses type-checked linting).
 **Consequences**: (+) Full type-checked linting for test files, clean production tsconfig. (-) One more config file to maintain.
 **References**: `tsconfig.test.json`, `.eslintrc.cjs` override at line 50
+
+### 2026-03-12: RMS energy gate for onset detection
+**Status**: Approved
+**Context**: Spectral flux threshold alone (even at 0.5) is insufficient to reject ambient microphone noise. Mic noise produces spectral flux values of 0.3-0.7 regularly, causing ~10 false onsets per second with no actual tapping. The flux is high because ambient noise has varying spectral content between frames.
+**Decision**: Add a third onset gating condition: RMS energy of the current frame must exceed `0.01`. This creates a dual-gating system: (1) spectral flux > adaptive threshold AND flux > 0.5 (absolute floor), AND (2) RMS energy > 0.01 (amplitude gate). Quiet ambient noise has very low RMS even when spectral flux spikes.
+**Alternatives**: Raise flux threshold higher (rejected: would miss legitimate quiet taps); Apply noise gate to mic input (rejected: modifies raw signal, complicates DSP); Use peak amplitude instead of RMS (rejected: RMS is more robust to single-sample outliers).
+**Consequences**: (+) False onsets reduced from ~135/16s to ~1/16s in ambient noise. Percussive taps have high RMS and easily pass the gate. (-) Very quiet taps may be missed if below 0.01 RMS (acceptable: such taps would be too quiet to produce useful audio snippets anyway). Additional ~0.05ms compute per hop for RMS calculation.
+**References**: `public/worklets/tap-processor.js:247-253`
+
+### 2026-03-12: Complete status navigates home
+**Status**: Approved
+**Context**: After recording stop, `useProcessing` sets status to `'complete'`. RecordingScreen had no handler for `'complete'` — it fell through to the default recording view, making stop appear broken. M3 has no review/clustering screen yet.
+**Decision**: Add `useEffect` in RecordingScreen that navigates to `/` (home) when status becomes `'complete'`. Uses existing `useNavigate` from react-router-dom, matching the pattern in RecordingHeader and PermissionDenied.
+**Alternatives**: Reset status to 'idle' (rejected: loses the state transition, harder to debug); Show a completion screen in RecordingScreen (rejected: M3 has no results to show yet, premature); Navigate to '/review' (rejected: /review screen not implemented until M4).
+**Consequences**: (+) Stop button works as expected, user returns to home after recording. (-) M4+ will need to change this to navigate to `/review` instead of `/`.
+**References**: `src/components/recording/RecordingScreen.tsx:27-31`
