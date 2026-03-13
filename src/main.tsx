@@ -7,7 +7,7 @@ import { registerServiceWorker } from '@/utils/serviceWorkerRegistration';
 
 // Expose Zustand stores on window in dev mode for Chrome DevTools testing
 if (import.meta.env.DEV) {
-  const w = window as Record<string, unknown>;
+  const w = window as unknown as Record<string, unknown>;
   void import('./state/recordingStore').then((m) => {
     w.__recordingStore = m.useRecordingStore;
   });
