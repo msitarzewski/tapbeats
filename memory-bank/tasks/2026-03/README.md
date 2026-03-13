@@ -165,8 +165,25 @@
 - Pattern: Sequential implementation (PWA → onboarding → cross-browser → accessibility → UI polish)
 - See: [releases/mvp/milestone-9-polish-pwa.md](../../../releases/mvp/milestone-9-polish-pwa.md)
 
+### 2026-03-13: Milestone 10 -- Launch Planning (multi-agent research)
+- **Status**: Planning complete, ready for implementation
+- **Agents used**: Explore (codebase audit), general-purpose (dependency/security audit), Backend Architect (hosting analysis), marketing-content-creator (launch drafts), general-purpose (OSS docs research)
+- **Key findings**:
+  - Vercel recommended; GitHub Pages disqualified (no custom headers for COOP/COEP)
+  - Draft vercel.json corrected: added `font-src`/`manifest-src` to CSP, asset cache `immutable`, SW `no-cache`
+  - 6 moderate vulns all dev-only (esbuild chain), all 465 dep licenses permissive, no secrets
+  - 2 console statement files: ErrorBoundary.tsx (keep), PlaybackEngine.ts (gate behind `__DEV__`)
+  - Version misalignment: package.json 0.1.0 + SettingsScreen v0.9.0 → both need 1.0.0
+  - 7 new files needed, 6 existing files to modify
+  - Launch content fully drafted: Product Hunt, Show HN, Reddit (3), Twitter/X (7), Dev.to outline
+- **4-phase plan**: Infrastructure → Documentation → Launch Content → QA (Chrome DevTools MCP)
+- Pattern: 5-agent parallel research (Explore + Security + Hosting + Marketing + Docs)
+- See: [releases/mvp/milestone-10-launch.md](../../../releases/mvp/milestone-10-launch.md)
+
 ## Priorities for Next Session
 
-1. Milestone 10: Launch — deployment, final QA, documentation, open source readiness
-2. Deploy to static hosting with HTTPS + CSP
-3. Real-world testing across surfaces, environments, devices
+1. Milestone 10: Implementation — execute 4-phase plan
+2. Create vercel.json, bump versions to 1.0.0, add OG/Twitter meta tags
+3. Create CODE_OF_CONDUCT, CHANGELOG, ATTRIBUTION, LICENSE (MIT), Issue templates
+4. Final QA with Chrome DevTools MCP on production build
+5. Commit, push, deploy to Vercel
