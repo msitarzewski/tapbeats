@@ -14,8 +14,13 @@ type IconName =
   | 'repeat'
   | 'chevron-right'
   | 'chevron-down'
+  | 'volume-2'
   | 'volume-x'
-  | 'check';
+  | 'check'
+  | 'undo'
+  | 'redo'
+  | 'plus'
+  | 'trash-2';
 
 interface IconProps extends SVGAttributes<SVGElement> {
   readonly name: IconName;
@@ -38,8 +43,14 @@ const PATHS: Record<IconName, string> = {
   repeat: 'M17 1l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3',
   'chevron-right': 'M9 18l6-6-6-6',
   'chevron-down': 'M6 9l6 6 6-6',
+  'volume-2': 'M11 5L6 9H2v6h4l5 4V5zM19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07',
   'volume-x': 'M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6',
   check: 'M20 6L9 17l-5-5',
+  undo: 'M3 7v6h6M3 13A9 9 0 1 0 6.3 6.3L3 7',
+  redo: 'M21 7v6h-6M21 13A9 9 0 1 1 17.7 6.3L21 7',
+  plus: 'M12 5v14M5 12h14',
+  'trash-2':
+    'M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6',
 };
 
 export function Icon({ name, size = 24, className, ...rest }: IconProps) {

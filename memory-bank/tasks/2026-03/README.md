@@ -118,8 +118,26 @@
 - Pattern: 4-agent parallel execution (Phase 1) + sequential test agent
 - See: [releases/mvp/milestone-6-quantization.md](../../../releases/mvp/milestone-6-quantization.md)
 
+### 2026-03-13: Milestone 7 -- Timeline Enhancement
+- **Branch**: `milestone-7/timeline-enhancement` (from `milestone-6/quantization`)
+- **Status**: Complete
+- **Files created**: `src/types/timeline.ts`, `src/state/timelineStore.ts`, `src/components/timeline/TrackHeaders.tsx` + CSS, `src/components/timeline/TrackControls.tsx` + CSS, `src/hooks/useTimelineEditing.ts`, `src/hooks/useKeyboardShortcuts.ts`
+- **Files modified**: `quantizationStore.ts` (+4 actions), `PlaybackEngine.ts` (track gain chain), `useTimelineRenderer.ts` (zoom/scroll/ruler), `useQuantizedPlayback.ts` (mute/solo + seamless loop), `TimelineScreen.tsx`, `TimelineCanvas.tsx`, `TransportBar.tsx`, `Icon.tsx` (+5 icons)
+- **Tests**: 495 passing (46 files, +57 new), 0 lint errors, build 101KB app
+- **Key features**: Track mute/solo/volume, zoom/scroll, beat/bar ruler, hit editing (drag/add/delete), undo/redo (50-depth), keyboard shortcuts, seamless loop, responsive mobile
+- **Key learnings**:
+  - Undo across stores: snapshot both quantizedHits + trackConfigs, write back via setQuantizedHits
+  - structuredClone is fast for flat objects (0.1ms/500 hits)
+  - DOM track headers alongside canvas works well for accessibility + performance
+  - Per-track gain nodes: create on play start, adjust values in real-time via store subscription
+  - Seamless loop: pre-schedule next iteration when timeUntilEnd < lookahead
+  - `no-non-null-assertion`: use undefined guard after .pop() instead of !
+  - `no-confusing-void-expression`: void arrow functions need braces, auto-fixable
+- Pattern: Single-session sequential implementation (types → stores → audio → hooks → UI → tests)
+- See: [releases/mvp/milestone-7-timeline-playback.md](../../../releases/mvp/milestone-7-timeline-playback.md)
+
 ## Priorities for Next Session
 
-1. Browser verification of M6 (quantization controls, timeline canvas, transport playback)
-2. Begin Milestone 7: Timeline Enhancement
-3. Begin Milestone 8: Session Management
+1. Browser verification of M7 (track controls, zoom/scroll, editing, undo/redo, shortcuts)
+2. Begin Milestone 8: Session Management & WAV Export
+3. Begin Milestone 9: Polish, PWA & Cross-Browser

@@ -154,6 +154,38 @@ Polish the end-to-end experience, add PWA support for offline use and installabi
 - Ghost marker fade: when toggling before/after, ghost markers should fade in/out smoothly
 - BPM detection confidence indicator could pulse/glow when confidence is high
 
+### Lessons from M7 (Timeline Enhancement)
+
+#### UI Components to Polish
+- **TrackHeaders** (`src/components/timeline/TrackHeaders.tsx`): DOM-based with mute (volume-2/volume-x icon) and solo ("S" text) buttons. Responsive at <=640px (48px icon-only, no name label, solo hidden). Verify touch targets meet Apple HIG 44px minimum.
+- **TrackControls** (`src/components/timeline/TrackControls.tsx`): Per-track + master volume sliders in collapsible panel. Reuses shared Slider component.
+- **TransportBar** (`src/components/timeline/TransportBar.tsx`): Now includes undo/redo buttons (disabled state), master volume slider, dividers. Mobile: fixed bottom, volume hidden.
+- **TimelineCanvas**: Has `touch-action: none` for gesture control. Verify pinch-to-zoom doesn't conflict with browser zoom on iOS Safari.
+
+#### Accessibility Audit Points (M7)
+- Track headers use real `<button>` elements with `aria-label` and `aria-pressed` — verify screen reader announces mute/solo state
+- TrackHeaders `role="list"` with `role="listitem"` — verify navigation
+- Keyboard shortcuts (`useKeyboardShortcuts.ts`): Space, L, M, S, 1-9, Ctrl+Z/Y, +/- — document in help/tooltip overlay
+- Canvas hit editing has no keyboard equivalent yet — consider Tab to cycle hits, Enter to select, arrow keys to nudge
+- Volume sliders reuse shared Slider (range input) — verify ARIA labels present
+
+#### Animations to Polish (M7)
+- Mute toggle: fade track opacity 1 → 0.3 smoothly (currently instant)
+- Solo glow: highlighted border/background animation on solo button
+- Drag preview: smooth follow with grid snap indicator line
+- Zoom: smooth transition between zoom levels (currently instant)
+- Undo/redo: flash or brief highlight on restored hits
+
+#### Performance Notes (M7)
+- Canvas viewport culling implemented — only draws hits within visible range. Should maintain 60fps with 200+ hits at any zoom level.
+- PlaybackEngine track gain nodes persist during playback — no allocation/deallocation jank
+- structuredClone for undo: ~0.1ms for 500 hits — negligible
+- Build size: 101KB app (grew 15KB from M6's 86KB). Monitor for M8 additions.
+
+#### TypeScript/Lint (M7 additions)
+- `no-non-null-assertion`: Use `if (x === undefined) return` guard after `.pop()` instead of `!`
+- `no-confusing-void-expression`: Arrow functions calling void methods need `{ }` braces — auto-fixable with `--fix`
+
 ### Infrastructure from M2
 - **Reduced motion support**: `useReducedMotion` hook + CSS `@media (prefers-reduced-motion: reduce)` already applied to RecordButton glow, HitFlash, StatsBar bounce, RecordingHeader dot pulse. Extend pattern to all new animations.
 - **ARIA live regions**: RecordingScreen has `role="status"` + `aria-live="polite"` for screen reader announcements. ProcessingOverlay has `role="alert"` + `aria-live="assertive"`. Apply to all dynamic status changes.

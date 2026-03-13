@@ -50,7 +50,7 @@ Five independent **Zustand store slices**, each created with `create()`. No comb
 | `appStore` | Navigation, permissions, errors | `currentScreen`, `micPermission`, `audioContextResumed` |
 | `recordingStore` | Active recording lifecycle | `status` (idle/countdown/recording/processing), `onsets[]`, `elapsedSeconds` |
 | `clusterStore` | Cluster results and assignments | `result: ClusterResult`, `sampleAssignments`, `clusterLabels` |
-| `timelineStore` | Quantized hits, playback position | `hits[]`, `config: QuantizationConfig`, `isPlaying`, `numBars` |
+| `timelineStore` | Track controls, zoom/scroll, undo/redo | `trackConfigs[]`, `masterVolume`, `pixelsPerSecond`, `scrollOffsetSeconds`, `undoStack`, `redoStack` |
 | `sessionStore` | Saved sessions, active session | `sessions[]`, `activeSessionId`, persistence |
 
 **Middleware**: `persistMiddleware` (IndexedDB via idb-keyval), `devtoolsMiddleware` (Redux DevTools integration). Subscriptions with selectors prevent unnecessary re-renders during high-frequency audio updates.
@@ -118,13 +118,15 @@ Five independent **Zustand store slices**, each created with `create()`. No comb
 - 50ms head start on play to ensure first notes are pre-scheduled
 - Velocity mapped via quadratic curve: `gain = velocity^2`
 
-**Audio graph**: Per-hit `AudioBufferSourceNode -> GainNode(velocity)` -> per-track `StereoPannerNode -> GainNode(volume)` -> `MasterGainNode -> AudioDestination`
+**Audio graph** (implemented in M7): `AudioBufferSourceNode -> GainNode(velocity) -> GainNode(trackVolume) -> GainNode(masterVolume) -> AudioDestination`. Track gain nodes created on play start, gain values adjusted in real-time via timelineStore subscription. No teardown/recreate during playback.
 
 **Sample loading**: WAV samples bundled in `public/samples/`. PlaybackEngine singleton fetches all on init, decodes to `AudioBuffer` cache. OGG/MP3 format detection stub ready for real samples.
 
 ## Rendering Pattern
 
-**Timeline**: Canvas 2D at 60fps via `requestAnimationFrame`. Grid lines + hit markers drawn on quantized positions. Zoom (pixels/sec) and scroll (offset in seconds) controlled by `timelineStore`.
+**Timeline**: Canvas 2D at 60fps via `requestAnimationFrame`. Grid lines + hit markers drawn on quantized positions. Zoom (`pixelsPerSecond`) and scroll (`scrollOffsetSeconds`) controlled by `timelineStore`. Time-to-pixel mapping: `timeToX(t) = (t - scrollOffset) * pixelsPerSecond`. Beat/bar ruler at top (24px). Muted tracks render at 30% opacity. Viewport culling skips offscreen hits. Track headers are DOM elements (not canvas) for accessibility — flex layout alongside canvas.
+
+**Hit Editing**: Hit-testing uses same `timeToX()` mapping as rendering (12px threshold). Drag preview stored in ref (not state) for 60fps. Grid snap via `nearestGridPoint()`. All edits push undo before mutation.
 
 ## Storage Pattern
 
@@ -136,14 +138,16 @@ Audio snippets stored as `Float32Array` blobs. Raw recording optionally stored a
 
 **Zustand persistence**: `idb-keyval` middleware for serializable state slices. Non-serializable refs (`_audioContext`, `_playbackEngine`) excluded from persistence.
 
-## Undo/Redo Pattern
+## Undo/Redo Pattern (implemented in M7)
 
-**Snapshot-based** with max depth of 50:
-- Before each destructive edit: `structuredClone` of hits, clusters, tracks, quantization config pushed to undo stack
-- Audio snippets NOT copied (immutable after creation)
+**Snapshot-based** with max depth of 50, managed by `timelineStore`:
+- Before each destructive edit: `structuredClone` of `quantizedHits` + `trackConfigs` pushed to undo stack
+- `structuredClone` is fast for flat QuantizedHit objects (~0.1ms for 500 hits)
 - New action clears redo stack
-- `undo()`: push current state to redo, restore from undo stack
-- `redo()`: push current state to undo, restore from redo stack
+- `undo()`: push current state to redo, restore snapshot, write hits back via `quantizationStore.setQuantizedHits()`
+- `redo()`: push current state to undo, restore snapshot, write hits back
+- Cross-store write-back: timelineStore owns undo stack, writes back to quantizationStore on restore
+- Audio snippets NOT copied (immutable after creation)
 
 ## App State Machine
 

@@ -25,6 +25,13 @@ interface QuantizationStoreState {
   setSwingAmount: (amount: number) => void;
   setPlaybackMode: (mode: PlaybackMode) => void;
   recomputeQuantization: () => void;
+
+  // Direct mutation actions (for undo/redo and timeline editing)
+  setQuantizedHits: (hits: QuantizedHit[]) => void;
+  addHit: (hit: QuantizedHit) => void;
+  removeHit: (hitIndex: number) => void;
+  updateHitTime: (hitIndex: number, newTime: number) => void;
+
   reset: () => void;
 }
 
@@ -93,6 +100,33 @@ export const useQuantizationStore = create<QuantizationStoreState>()((set, get) 
       config,
     );
     set({ quantizedHits });
+  },
+
+  setQuantizedHits: (hits) => {
+    set({ quantizedHits: hits });
+  },
+
+  addHit: (hit) => {
+    const { quantizedHits } = get();
+    const updated = [...quantizedHits, hit].sort((a, b) => a.quantizedTime - b.quantizedTime);
+    set({ quantizedHits: updated });
+  },
+
+  removeHit: (hitIndex) => {
+    set((s) => ({
+      quantizedHits: s.quantizedHits.filter((_, i) => i !== hitIndex),
+    }));
+  },
+
+  updateHitTime: (hitIndex, newTime) => {
+    set((s) => {
+      const updated = s.quantizedHits.map((hit, i) =>
+        i === hitIndex
+          ? { ...hit, quantizedTime: newTime, gridPosition: newTime * (s.bpm / 60) }
+          : hit,
+      );
+      return { quantizedHits: updated.sort((a, b) => a.quantizedTime - b.quantizedTime) };
+    });
   },
 
   reset: () => {

@@ -2,9 +2,9 @@
 
 ## Current State
 
-**Phase**: Milestone 6 complete — quantization engine implemented.
-**Sprint**: Implementation — BPM detection, grid quantization, timeline UI, playback
-**Branch**: `milestone-6/quantization` (from `milestone-5/instrument-assignment`)
+**Phase**: Milestone 7 complete — timeline enhancement implemented.
+**Sprint**: Implementation — track controls, zoom/scroll, hit editing, undo/redo, keyboard shortcuts
+**Branch**: `milestone-7/timeline-enhancement` (from `milestone-6/quantization`)
 **Last Updated**: 2026-03-13
 
 ---
@@ -16,64 +16,69 @@
 - Milestone 3: Real-Time Onset Detection — **COMPLETE** (on `milestone-3/onset-detection`)
 - Milestone 4: Sound Clustering & Cluster Review UI — **COMPLETE** (on `milestone-4/clustering`)
 - Milestone 5: Instrument Assignment & Sample Library — **COMPLETE** (on `milestone-5/instrument-assignment`)
-  - 4 audio/playback files, 2 UI components + CSS, types, script, 18 WAV samples
-  - Extended clusterStore with assignment state, refactored useClusterPlayback to use PlaybackEngine
-  - 377 tests passing (35 test files), 0 lint errors, production build succeeds (74KB app)
 - Milestone 6: Quantization Engine — **COMPLETE** (on `milestone-6/quantization`)
-  - 3 algorithm files, 1 store, 3 UI components, 2 hooks, PlaybackEngine enhanced
-  - BPM detection (IOI histogram + Gaussian smoothing + ambiguity resolution), grid quantization (6 resolutions, strength 0-100%, swing)
-  - quantizationStore Zustand slice with cross-store reads
-  - Timeline UI: QuantizationControls, TimelineCanvas, TransportBar
-  - useTimelineRenderer (rAF canvas), useQuantizedPlayback (lookahead scheduler), PlaybackEngine.playScheduled()
-  - 438 tests passing (40 test files), 0 lint errors, production build succeeds (86KB app)
+- Milestone 7: Timeline Enhancement — **COMPLETE** (on `milestone-7/timeline-enhancement`)
+  - New timelineStore (Zustand): track controls, zoom/scroll, undo/redo (50-depth)
+  - Extended quantizationStore: +4 write-back actions (setQuantizedHits, addHit, removeHit, updateHitTime)
+  - PlaybackEngine: per-track gain chain (source → velocityGain → trackGain → masterGain → destination)
+  - DOM TrackHeaders (accessible mute/solo), TrackControls (volume sliders)
+  - Canvas: zoom/scroll, beat/bar ruler, mute visuals, viewport culling, drag preview
+  - Hit editing: drag (grid snap), double-click add, right-click delete
+  - Keyboard shortcuts: Space, L, M, S, 1-9, Ctrl+Z/Y, +/-
+  - Seamless loop with pre-scheduling
+  - Responsive mobile layout
+  - 495 tests passing (46 files), 0 lint errors, production build succeeds (101KB app)
 
 ---
 
-## Key Implementation Details (M6)
+## Key Implementation Details (M7)
 
-### Quantization Flow
+### Data Flow
 ```
-Assigned hits (from M5 pipeline)
-  → detectBpm(hits) uses IOI histogram + Gaussian smoothing + ambiguity resolution
-  → quantizeHits(hits, bpm, resolution, strength, swing) snaps to grid
-  → quantizationStore manages BPM, resolution, strength, swing state
-  → Cross-store reads: quantizationStore reads from clusterStore + recordingStore
-  → TimelineCanvas renders hits on canvas (rAF loop via useTimelineRenderer)
-  → QuantizationControls: BPM, resolution picker (6 levels), strength slider, swing knob
-  → TransportBar: play/pause/stop, position display, loop toggle
-  → useQuantizedPlayback: lookahead scheduler for sample-accurate timing
-  → PlaybackEngine.playScheduled(sampleId, when) for timed sample playback
+quantizationStore.quantizedHits (source of truth for hit positions)
+  + timelineStore.trackConfigs (mute/solo/volume per track)
+  + timelineStore.pixelsPerSecond, scrollOffsetSeconds (zoom/scroll)
+  → useTimelineRenderer (canvas: grid, hits, ghost markers, cursor, ruler)
+  → useQuantizedPlayback (scheduler filters by activeTrackIds, routes through track gains)
+  → PlaybackEngine (trackGain → masterGain → destination)
+
+Timeline edits:
+  → pushUndo() → modify quantizationStore.quantizedHits → renderer auto-updates
+  → undo()/redo() → restore snapshot → write back to quantizationStore
 ```
 
-### Data Pipeline
-- BPM detection: IOI (inter-onset interval) histogram with Gaussian smoothing, resolves octave ambiguity (60/120/240 BPM)
-- Grid quantization: 6 resolutions (1/4, 1/8, 1/8T, 1/16, 1/16T, 1/32), strength 0-100%, swing 0-100%
-- Benchmarks: detectBpm 0.13ms, quantizeHits 0.02ms for 500 items
+### Store Architecture (5 stores)
+| Store | Purpose |
+|-------|---------|
+| `appStore` | Navigation, permissions |
+| `recordingStore` | Recording lifecycle, onsets |
+| `clusterStore` | Clusters, assignments, instruments |
+| `quantizationStore` | BPM, grid, strength, quantizedHits + write-back actions |
+| `timelineStore` | Track controls, zoom/scroll, undo/redo |
 
-### Key Components
-- **Algorithm** (`src/audio/quantization/`): detectBpm.ts, quantizeHits.ts, gridUtils.ts
-- **Store**: `src/state/quantizationStore.ts` (Zustand slice, cross-store reads)
-- **UI**: QuantizationControls.tsx, TimelineCanvas.tsx, TransportBar.tsx
-- **Hooks**: useTimelineRenderer.ts (rAF canvas), useQuantizedPlayback.ts (lookahead scheduler)
-- **PlaybackEngine**: Enhanced with `playScheduled()` method for timed playback
+### Key Components (M7)
+- **State**: `timelineStore.ts` (Zustand, undo/redo snapshots via structuredClone)
+- **Audio**: `PlaybackEngine.ts` (per-track gain chain, master gain)
+- **Hooks**: `useTimelineEditing.ts` (hit-testing, drag, add, delete), `useKeyboardShortcuts.ts`
+- **UI**: `TrackHeaders.tsx` (DOM, accessible), `TrackControls.tsx` (volume sliders)
+- **Modified**: `useTimelineRenderer.ts` (zoom/scroll/ruler), `useQuantizedPlayback.ts` (mute/solo + seamless loop)
 
 ---
 
 ## Next Actions
 
-1. **Browser verification of M6** — quantization controls, timeline canvas, transport playback
-2. **Milestone 7: Timeline Enhancement** — DAW-style timeline polish, multi-track view
-3. **Milestone 8: Session Management** — save/load sessions, export
+1. **Browser verification of M7** — track controls, zoom/scroll, editing, undo/redo, keyboard shortcuts, loop
+2. **Milestone 8: Session Management & WAV Export** — IndexedDB persistence, WAV offline rendering
+3. **Milestone 9: Polish, PWA & Cross-Browser** — Service worker, accessibility, animations
 
 ---
 
 ## Context Notes
 
-- 4 parallel agents for M6 Phase 1 + sequential test agent
-- Import ordering convention: enforce consistent import grouping (external, internal, types)
-- Use `Array<T>` instead of `T[]` for complex generic types per project lint rules
-- `Float64Array` requires careful handling with `noUncheckedIndexedAccess` — always check bounds
-- Cross-store reads in Zustand: quantizationStore uses `getState()` from clusterStore + recordingStore
-- IOI histogram approach for BPM detection is more robust than simple median IOI
-- Canvas timeline with rAF loop provides smooth 60fps rendering for hit visualization
-- Lookahead scheduler pattern (from Web Audio API spec) ensures sample-accurate playback timing
+- Single-session sequential implementation was efficient for M7 (all phases in one pass)
+- Undo snapshots use structuredClone — fast for flat objects, not suitable for IndexedDB persistence
+- quantizationStore write-back actions bypass recompute — session save must persist quantizedHits directly when manual edits exist
+- PlaybackEngine track gain nodes persist during playback — created on play start, cleaned up on stop
+- DOM track headers work well alongside canvas — flex layout syncs heights via shared TRACK_HEIGHT constant
+- `no-non-null-assertion` lint rule: Use `if (x === undefined) return` guard after `.pop()` instead of `!`
+- `no-confusing-void-expression`: Void arrow functions need `{ }` braces — auto-fixable with `--fix`

@@ -156,13 +156,37 @@ Add persistence — save sessions to IndexedDB so users can return to their beat
 
 #### Session Data to Persist (M6 additions)
 - `quantizationStore` state must be saved/restored: bpm, bpmManualOverride, gridResolution, strength, swingAmount, playbackMode
-- `quantizedHits` array is derived (recomputed from config + onsets + clusters) — save config, not hits
+- `quantizedHits` array: if user has made manual edits (add/move/delete), persist quantizedHits directly; otherwise recompute from config
 - BPM detection runs on load — restore manual override flag to prevent re-detection from overwriting user's BPM
 
 #### WAV Export Integration (M6 additions)
 - `quantizedHits` provides the final hit schedule for offline rendering: each hit has `quantizedTime`, `instrumentId`, `velocity`
 - `PlaybackEngine.getBuffer(instrumentId)` provides AudioBuffers for offline rendering
 - Before/after comparison in export: user should choose whether to export original or quantized timing
+
+### Lessons from M7 (Timeline Enhancement)
+
+#### Timeline Store & Write-Back Actions
+- `timelineStore` manages: `trackConfigs` (mute/solo/volume per track), `masterVolume`, `selectedTrackIndex`, `pixelsPerSecond`, `scrollOffsetSeconds`, `undoStack`, `redoStack`
+- `quantizationStore` has write-back actions: `setQuantizedHits(hits)`, `addHit(hit)`, `removeHit(index)`, `updateHitTime(index, time)` — these bypass recompute for manual edits
+- **Session save must handle manual edits**: If user has dragged/added/deleted hits, `quantizedHits` can no longer be recomputed from config alone. Detect this (e.g., dirty flag or compare to recomputed output) and persist `quantizedHits` directly.
+
+#### Audio Graph for WAV Export
+- `PlaybackEngine` now has per-track gain chain: `source → velocityGain → trackGain → masterGain → destination`
+- Methods available: `createTrack(trackId, volume)`, `setTrackVolume(trackId, volume)`, `setMasterVolume(volume)`
+- WAV offline rendering should use same gain routing: create offline AudioContext, mirror track gain chain, schedule all hits, render to AudioBuffer
+- `playScheduled(instrumentId, when, velocity, trackId?)` already routes through track gain when `trackId` provided
+
+#### Session Data to Persist (M7 additions)
+- `timelineStore.trackConfigs`: per-track mute/solo/volume state
+- `timelineStore.masterVolume`: master volume level
+- Do NOT persist: undoStack, redoStack (not serializable via structuredClone for IndexedDB), pixelsPerSecond, scrollOffsetSeconds (UI-only state)
+- Do NOT persist: selectedTrackIndex (reset on load)
+
+#### TypeScript/Lint (M7 additions)
+- `no-non-null-assertion`: Use `if (x === undefined) return` guard after `.pop()` instead of `!`
+- `no-confusing-void-expression`: Arrow functions calling void methods need `{ }` braces — auto-fixable with `--fix`
+- `structuredClone` works for QuantizedHit (flat readonly properties) but undo snapshots are NOT suitable for IndexedDB persistence
 
 ### Export Considerations
 - Build output goes to `dist/` — already .gitignored

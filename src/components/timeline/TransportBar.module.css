@@ -83,3 +83,45 @@
   min-width: 48px;
   text-align: center;
 }
+
+.transportBtn:disabled {
+  opacity: 0.3;
+  cursor: default;
+  pointer-events: none;
+}
+
+.divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.volumeControl {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-secondary);
+  min-width: 100px;
+  max-width: 140px;
+}
+
+@media (max-width: 640px) {
+  .transport {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .volumeControl {
+    display: none;
+  }
+
+  .divider {
+    display: none;
+  }
+}

@@ -143,8 +143,31 @@ Final QA, deployment setup, launch preparation, and public release. Ship TapBeat
 - CSS module class concatenation: `[styles.a, condition ? styles.b : ''].filter(Boolean).join(' ')` — never template literals
 
 #### Build Size Tracking
-- M6 added ~12KB to app bundle (74KB → 86KB). Total through M6: 86KB app + 143KB vendor = 229KB (gzipped ~75KB). Still well under 200KB gzipped budget.
-- Test count: 438 as of M6. On track for 500+ by launch.
+- M6 added ~12KB to app bundle (74KB → 86KB).
+- M7 added ~15KB to app bundle (86KB → 101KB). Total through M7: 101KB app + 143KB vendor = 244KB (gzipped ~80KB). Still well under 200KB gzipped budget.
+- Test count: 495 as of M7. Already near 500 target; expect 550+ by launch.
+
+### Lessons from M7 (Timeline Enhancement)
+
+#### Infrastructure Available
+- `timelineStore` manages track controls (mute/solo/volume), zoom/scroll, undo/redo (50-depth snapshots)
+- `quantizationStore` has write-back actions: `setQuantizedHits`, `addHit`, `removeHit`, `updateHitTime`
+- PlaybackEngine per-track gain chain: `source → velocityGain → trackGain → masterGain → destination`
+- DOM-based TrackHeaders (accessible mute/solo buttons) alongside canvas timeline
+- Keyboard shortcuts: Space, L, M, S, 1-9, Ctrl+Z/Y, +/-
+- Hit editing: drag-to-move (grid snap), double-click add, right-click delete
+
+#### Real-World Testing Notes (M7)
+- Test mute/solo behavior with multiple tracks — verify solo overrides mute correctly
+- Test zoom at extreme levels (50 pps to 2000 pps) — verify grid lines and hit markers scale correctly
+- Test seamless loop with various BPMs and track configurations — verify <5ms gap
+- Test undo/redo with many operations (push to 50 limit) — verify memory usage stays reasonable
+- Test keyboard shortcuts don't fire in input fields (BPM, grid resolution pickers)
+- Test responsive layout at 375px (iPhone SE) — track headers should collapse to 48px icons
+
+#### TypeScript/Lint (M7 additions)
+- `no-non-null-assertion`: Use `if (x === undefined) return` guard after `.pop()` instead of `!`
+- `no-confusing-void-expression`: Arrow functions calling void methods need `{ }` braces — auto-fixable
 
 ### Lessons from M3 (Onset Detection)
 

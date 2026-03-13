@@ -1,4 +1,5 @@
 import { Icon } from '@/components/shared/Icon';
+import { Slider } from '@/components/shared/Slider';
 import { useQuantizationStore } from '@/state/quantizationStore';
 import type { PlaybackMode } from '@/types/quantization';
 
@@ -12,6 +13,12 @@ interface TransportBarProps {
   readonly onPause: () => void;
   readonly onStop: () => void;
   readonly onToggleLoop: () => void;
+  readonly masterVolume: number;
+  readonly onMasterVolumeChange: (volume: number) => void;
+  readonly onUndo: () => void;
+  readonly onRedo: () => void;
+  readonly canUndo: boolean;
+  readonly canRedo: boolean;
 }
 
 export function TransportBar({
@@ -22,6 +29,12 @@ export function TransportBar({
   onPause,
   onStop,
   onToggleLoop,
+  masterVolume,
+  onMasterVolumeChange,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
 }: TransportBarProps) {
   const playbackMode = useQuantizationStore((s) => s.playbackMode);
   const setPlaybackMode = useQuantizationStore((s) => s.setPlaybackMode);
@@ -47,6 +60,26 @@ export function TransportBar({
 
   return (
     <div className={styles.transport}>
+      <button
+        className={styles.transportBtn}
+        onClick={onUndo}
+        disabled={!canUndo}
+        aria-label="Undo"
+      >
+        <Icon name="undo" size={18} />
+      </button>
+
+      <button
+        className={styles.transportBtn}
+        onClick={onRedo}
+        disabled={!canRedo}
+        aria-label="Redo"
+      >
+        <Icon name="redo" size={18} />
+      </button>
+
+      <div className={styles.divider} />
+
       <button className={styles.transportBtn} onClick={onStop} aria-label="Stop">
         <Icon name="skip-back" size={20} />
       </button>
@@ -76,6 +109,21 @@ export function TransportBar({
       </button>
 
       <span className={styles.position}>{formatTime(currentTime)}</span>
+
+      <div className={styles.divider} />
+
+      <div className={styles.volumeControl}>
+        <Icon name="volume-2" size={16} />
+        <Slider
+          value={Math.round(masterVolume * 100)}
+          onChange={(v) => {
+            onMasterVolumeChange(v / 100);
+          }}
+          min={0}
+          max={100}
+          step={1}
+        />
+      </div>
     </div>
   );
 }

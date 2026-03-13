@@ -2,7 +2,7 @@
 
 ## Overall Status
 
-**Phase**: Milestone 6 complete, ready for browser verification.
+**Phase**: Milestone 7 complete, ready for browser verification.
 **Target**: 12-week MVP delivery
 **Last Updated**: 2026-03-13
 
@@ -70,16 +70,30 @@
 - Pattern: 4 parallel agents (Phase 1) + sequential test agent
 - Key learnings: import ordering convention, `Array<T>` vs `T[]`, `Float64Array` with `noUncheckedIndexedAccess`
 
+### Milestone 7: Timeline Enhancement (2026-03-13)
+- **Branch**: `milestone-7/timeline-enhancement` (from `milestone-6/quantization`)
+- New `timelineStore` Zustand store: track controls (mute/solo/volume), zoom/scroll, undo/redo (50-depth)
+- Extended `quantizationStore` with write-back actions: `setQuantizedHits`, `addHit`, `removeHit`, `updateHitTime`
+- PlaybackEngine per-track gain chain: `source → velocityGain → trackGain → masterGain → destination`
+- DOM-based TrackHeaders (accessible mute/solo buttons), TrackControls (per-track + master volume sliders)
+- Canvas enhancements: zoom/scroll mapping, beat/bar ruler, mute visuals (30% opacity), viewport culling, drag preview
+- Hit editing: drag-to-move (grid snap), double-click add, right-click delete — all with undo
+- Keyboard shortcuts: Space, L, M, S, 1-9, Ctrl+Z/Y, +/-
+- Seamless loop playback with pre-scheduling next iteration before boundary
+- Responsive: 48px icon-only headers at <=640px, fixed bottom transport on mobile
+- 495 tests passing (46 files, +57 new), 0 lint errors, production build succeeds (101KB app)
+- Pattern: Single-session sequential implementation (types → stores → audio → hooks → UI → tests)
+
 ---
 
 ## Next Up
 
 | Priority | Item | Reference |
 |----------|------|-----------|
-| 1 | Browser verification of M6 | Quantization controls, timeline canvas, transport playback |
-| 2 | Milestone 7: Timeline Enhancement | `releases/mvp/milestone-7-timeline-playback.md` |
-| 3 | Milestone 8: Session Management | `releases/mvp/milestone-8-session-management.md` |
-| 4 | Milestone 9: Polish & Performance | `releases/mvp/milestone-9-polish.md` |
+| 1 | Browser verification of M7 | Track controls, zoom/scroll, editing, undo/redo, keyboard shortcuts |
+| 2 | Milestone 8: Session Management & WAV Export | `releases/mvp/milestone-8-session-export.md` |
+| 3 | Milestone 9: Polish, PWA & Cross-Browser | `releases/mvp/milestone-9-polish-pwa.md` |
+| 4 | Milestone 10: Launch | `releases/mvp/milestone-10-launch.md` |
 
 ---
 
@@ -118,3 +132,8 @@ None.
 | Separate quantizationStore (not extend clusterStore) | SRP: quantization is a distinct concern; cross-store reads via getState() |
 | Canvas 2D for timeline rendering | rAF loop at 60fps; DOM too slow for real-time hit marker updates |
 | playScheduled() method on PlaybackEngine | Lookahead scheduler needs precise timing; separate from immediate playSample() |
+| Separate timelineStore (not extend quantizationStore) | SRP: UI interaction state (mute/solo/volume/zoom/undo) vs quantization parameters |
+| DOM track headers (not canvas) | Accessibility requires real `<button>` elements for mute/solo; canvas can't do ARIA |
+| Undo snapshots via structuredClone | Fast for flat QuantizedHit objects (0.1ms/500 hits); max 50 depth; write-back to quantizationStore on restore |
+| Per-track gain chain (not per-hit) | Create nodes once on play start, adjust gain values in real-time; no teardown during playback |
+| Write-back actions on quantizationStore | `setQuantizedHits`, `addHit`, `removeHit`, `updateHitTime` bypass recompute for manual edits |
