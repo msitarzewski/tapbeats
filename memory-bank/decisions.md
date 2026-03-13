@@ -12,6 +12,17 @@
 8. ["Fix it in post" UX model](#2026-03-12-fix-it-in-post-ux-model)
 9. [IndexedDB for persistence](#2026-03-12-indexeddb-for-persistence)
 10. [OGG primary, MP3 fallback](#2026-03-12-ogg-primary-mp3-fallback)
+11. [No SSL for local development](#2026-03-12-no-ssl-for-local-development)
+12. [Appendix A as canonical design tokens](#2026-03-12-appendix-a-as-canonical-design-tokens)
+13. [Separate tsconfig for tests](#2026-03-12-separate-tsconfig-for-tests)
+14. [New tap-processor.js worklet](#2026-03-12-new-tap-processorjs-worklet-not-extend-capture-workletjs)
+15. [Onset listeners in useAudioCapture](#2026-03-12-onset-listeners-wired-in-useaudiocapture-not-separate-hook)
+16. [Synchronous feature processing](#2026-03-12-synchronous-feature-processing-not-settimeout-batches)
+17. [RMS energy gate for onset detection](#2026-03-12-rms-energy-gate-for-onset-detection)
+18. [Complete status navigates home](#2026-03-12-complete-status-navigates-home)
+19. [Separate audio blobs from session JSON in IndexedDB](#2026-03-13-separate-audio-blobs-from-session-json-in-indexeddb)
+20. [Zustand persist middleware for settings](#2026-03-13-zustand-persist-middleware-for-settings-not-indexeddb)
+21. [OfflineAudioContext for WAV export](#2026-03-13-offlineaudiocontext-for-wav-export-mirror-real-time-gain-chain)
 
 ---
 
@@ -84,3 +95,91 @@
 **Decision**: Ship samples in dual format: OGG Vorbis as primary (smaller files, open format, supported by Chrome/Firefox/Edge) with MP3 fallback for Safari (which does not support OGG). Runtime detection via `audio.canPlayType('audio/ogg; codecs=vorbis')`. Samples are lazy-loaded on demand, total budget <2MB across all categories.
 **Alternatives**: WAV only (rejected: 10x larger files, defeats lazy-loading benefit); MP3 only (rejected: slightly larger than OGG at equivalent quality, licensing historically murky though now patent-free); Opus (rejected: not supported in Safari, would still need MP3 fallback); AAC (rejected: licensing complexity, OGG is open and free).
 **Consequences**: (+) Small file sizes, open format where possible, universal browser coverage with fallback. (-) Must maintain two versions of every sample, slightly more complex build pipeline, runtime format detection needed.
+
+### 2026-03-12: No SSL for local development
+**Status**: Approved
+**Context**: The original spec called for `@vitejs/plugin-basic-ssl` to enable HTTPS locally, since `getUserMedia` requires a secure context. However, all major browsers treat `localhost` as a secure context without HTTPS.
+**Decision**: Remove `@vitejs/plugin-basic-ssl`. Dev server runs plain HTTP on port 8087. Production deployment must use HTTPS.
+**Alternatives**: Keep self-signed SSL (rejected: causes browser certificate warnings, complicates Playwright testing, unnecessary since localhost is treated as secure).
+**Consequences**: (+) Simpler dev setup, no certificate warnings, cleaner Playwright config. (-) Must remember HTTPS is required in production for `getUserMedia` and service workers.
+**References**: `releases/mvp/milestone-1-project-scaffolding.md`
+
+### 2026-03-12: Appendix A as canonical design tokens
+**Status**: Approved
+**Context**: The milestone-1 spec listed older CSS token names (`--surface-base: #0A0A0F`, `--accent-primary: #6C5CE7`). The `ui-design.md` Appendix A uses different, final names (`--bg-primary: #121214`, `--accent-primary: #FF6B3D`).
+**Decision**: `ui-design.md` Appendix A is the single source of truth for CSS custom property names and values. All 40+ tokens are implemented in `src/styles/theme.css` using Appendix A naming.
+**Alternatives**: Use milestone-1 spec names (rejected: Appendix A is newer, more complete, and explicitly labeled as "Complete Reference").
+**Consequences**: (+) Single canonical source, consistent naming across all milestones. (-) Milestone-1 spec section 1.6 is now inaccurate (documented in M1 implementation notes).
+**References**: `src/styles/theme.css`, `docs/sections/ui-design.md` lines 1503-1591
+
+### 2026-03-12: New tap-processor.js worklet (not extend capture-worklet.js)
+**Status**: Approved
+**Context**: M3 onset detection needs FFT, spectral flux, adaptive threshold, and snippet extraction in the AudioWorklet. The existing capture-worklet.js has a single responsibility: buffer raw PCM and post to main thread.
+**Decision**: Create a new `tap-processor.js` worklet with all onset detection logic. AudioCapture.ts loads tap-processor instead of capture-worklet during recording. tap-processor posts both `buffer` events (for waveform, same as before) and `onset` events (new).
+**Alternatives**: Extend capture-worklet.js with onset detection (rejected: violates SRP, capture-worklet has fundamentally different responsibilities, would create a monolithic worklet).
+**Consequences**: (+) Clean separation of concerns, capture-worklet untouched for future raw-PCM use. (-) AudioCapture tests needed updating to expect tap-processor.js instead of capture-worklet.js.
+**References**: `public/worklets/tap-processor.js`, `src/audio/capture/AudioCapture.ts:117`
+
+### 2026-03-12: Onset listeners wired in useAudioCapture (not separate hook)
+**Status**: Approved
+**Context**: Initial implementation passed `captureRef.current` to a `useOnsetDetection` hook. But React refs don't trigger re-renders, so the hook always received `null` — onset events were silently never captured.
+**Decision**: Wire onset event listener directly in `useAudioCapture.startRecording()`, alongside existing buffer/error/stateChange listeners. This matches the established pattern and ensures the listener is connected when the capture instance is created.
+**Alternatives**: Use state instead of ref for capture instance (rejected: would cause re-renders on every capture creation); Pass ref object to hook (possible but adds complexity for no benefit).
+**Consequences**: (+) Onset events reliably captured, matches existing listener pattern. (-) `useOnsetDetection.ts` hook exists but is unused (can be removed).
+**References**: `src/hooks/useAudioCapture.ts:88-90`
+
+### 2026-03-12: Synchronous feature processing (not setTimeout batches)
+**Status**: Approved
+**Context**: `useProcessing` used `setTimeout(() => processBatch(next), 0)` to yield between batches. React's effect cleanup ran between setTimeout calls (especially in StrictMode), setting `cancelled = true` and preventing `setStatus('complete')` from ever being reached.
+**Decision**: Process all onsets synchronously within the useEffect, wrapped in try/catch. `setStatus('complete')` always fires regardless of errors.
+**Alternatives**: Web Worker for processing (overkill for <500 hits); requestIdleCallback (same cleanup issue); batched with refs instead of effect deps (more complex).
+**Consequences**: (+) Reliable completion, simple code, fast enough for typical sessions. (-) Blocks main thread during processing (~5ms per hit × 500 max = ~2.5s worst case). Acceptable since processing overlay is shown.
+**References**: `src/hooks/useProcessing.ts`
+
+### 2026-03-12: Separate tsconfig for tests
+**Status**: Approved
+**Context**: Main `tsconfig.json` excludes `tests/` to keep production builds clean. But ESLint with `@typescript-eslint/parser` requires a tsconfig that includes the files being linted. Test files were failing ESLint parsing.
+**Decision**: Create `tsconfig.test.json` extending `tsconfig.json` with `include: ["src/**", "tests/**"]` and `exclude: ["node_modules", "dist"]`. ESLint `.eslintrc.cjs` has an override for `tests/**` pointing `parserOptions.project` to `tsconfig.test.json`. Test tsconfig also relaxes `noUnusedLocals` and `noUnusedParameters`.
+**Alternatives**: Include tests in main tsconfig (rejected: would affect production build, risks including test code in bundle); ignore ESLint for test files (rejected: loses type-checked linting).
+**Consequences**: (+) Full type-checked linting for test files, clean production tsconfig. (-) One more config file to maintain.
+**References**: `tsconfig.test.json`, `.eslintrc.cjs` override at line 50
+
+### 2026-03-12: RMS energy gate for onset detection
+**Status**: Approved
+**Context**: Spectral flux threshold alone (even at 0.5) is insufficient to reject ambient microphone noise. Mic noise produces spectral flux values of 0.3-0.7 regularly, causing ~10 false onsets per second with no actual tapping. The flux is high because ambient noise has varying spectral content between frames.
+**Decision**: Add a third onset gating condition: RMS energy of the current frame must exceed `0.01`. This creates a dual-gating system: (1) spectral flux > adaptive threshold AND flux > 0.5 (absolute floor), AND (2) RMS energy > 0.01 (amplitude gate). Quiet ambient noise has very low RMS even when spectral flux spikes.
+**Alternatives**: Raise flux threshold higher (rejected: would miss legitimate quiet taps); Apply noise gate to mic input (rejected: modifies raw signal, complicates DSP); Use peak amplitude instead of RMS (rejected: RMS is more robust to single-sample outliers).
+**Consequences**: (+) False onsets reduced from ~135/16s to ~1/16s in ambient noise. Percussive taps have high RMS and easily pass the gate. (-) Very quiet taps may be missed if below 0.01 RMS (acceptable: such taps would be too quiet to produce useful audio snippets anyway). Additional ~0.05ms compute per hop for RMS calculation.
+**References**: `public/worklets/tap-processor.js:247-253`
+
+### 2026-03-12: Complete status navigates home
+**Status**: Approved
+**Context**: After recording stop, `useProcessing` sets status to `'complete'`. RecordingScreen had no handler for `'complete'` — it fell through to the default recording view, making stop appear broken. M3 has no review/clustering screen yet.
+**Decision**: Add `useEffect` in RecordingScreen that navigates to `/` (home) when status becomes `'complete'`. Uses existing `useNavigate` from react-router-dom, matching the pattern in RecordingHeader and PermissionDenied.
+**Alternatives**: Reset status to 'idle' (rejected: loses the state transition, harder to debug); Show a completion screen in RecordingScreen (rejected: M3 has no results to show yet, premature); Navigate to '/review' (rejected: /review screen not implemented until M4).
+**Consequences**: (+) Stop button works as expected, user returns to home after recording. (-) M4+ will need to change this to navigate to `/review` instead of `/`.
+**References**: `src/components/recording/RecordingScreen.tsx:27-31`
+
+### 2026-03-13: Separate audio blobs from session JSON in IndexedDB
+**Status**: Approved
+**Context**: Sessions contain large binary audio data (raw recording as Float32Array, per-hit snippet buffers). Storing these inline in the session JSON object would make serialization slow and waste memory during listing operations.
+**Decision**: Two IndexedDB object stores: `sessions` for JSON-serializable session data, `audioBlobs` for binary data keyed by `{sessionId}:{type}:{subId}`. Session listing reads only from `sessions` store (with `by-updated` index for sorted listing). Audio blobs loaded on demand during session restore.
+**Alternatives**: Single object store with binary data inline (rejected: slow listing, high memory for just displaying session list); File System Access API for blobs (rejected: limited browser support, requires user interaction).
+**Consequences**: (+) Fast session list loading, efficient binary storage, clean separation. (-) Two-phase save/load, must delete blobs when deleting session.
+**References**: `src/state/persistence/db.ts`, `src/state/persistence/serialization.ts`
+
+### 2026-03-13: Zustand persist middleware for settings (not IndexedDB)
+**Status**: Approved
+**Context**: User settings (theme, default BPM, grid resolution, sensitivity) are small, simple key-value pairs that should persist across sessions. IndexedDB is available but heavyweight for simple settings.
+**Decision**: Use Zustand's built-in `persist` middleware with `createJSONStorage(() => localStorage)` for the settings store. Settings are separate from session data.
+**Alternatives**: IndexedDB for settings (rejected: overkill for <1KB of JSON, async API adds complexity); Manual localStorage reads (rejected: Zustand persist middleware handles hydration and serialization automatically).
+**Consequences**: (+) Automatic persistence, synchronous reads on app start, simple API. (-) 5MB localStorage limit (irrelevant for settings data).
+**References**: `src/state/settingsStore.ts`
+
+### 2026-03-13: OfflineAudioContext for WAV export (mirror real-time gain chain)
+**Status**: Approved
+**Context**: WAV export needs to render the full beat as a stereo audio file. The real-time playback uses a per-track gain chain (`source → velocityGain → trackGain → masterGain → destination`) with mute/solo logic.
+**Decision**: Use `OfflineAudioContext` to render the mix offline, mirroring the exact same gain chain as real-time playback. This ensures exported audio matches what the user hears. Muted tracks are excluded, solo logic applies, velocity and volume are respected.
+**Alternatives**: Manual sample mixing in Float32Array (rejected: would need to reimplement gain/mixing math, error-prone, no resampling support); Record real-time output via MediaRecorder (rejected: real-time speed, can't export faster than playback).
+**Consequences**: (+) Faithful reproduction of playback, reuses browser's audio mixing, handles sample rate conversion. (-) Requires creating a parallel audio graph, can't show real-time preview during export.
+**References**: `src/audio/export/renderMix.ts`, `src/audio/export/wavEncoder.ts`

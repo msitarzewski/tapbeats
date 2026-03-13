@@ -75,3 +75,57 @@ Implement real-time onset (hit) detection that runs during recording. Every time
 - `product-requirements.md` — FR-012 through FR-018
 - `audio-engineering.md` — Sections 2-3 (Onset detection, Feature extraction)
 - `technical-architecture.md` — Sections 3-4 (Onset detection, Feature extraction)
+
+## Implementation Notes from M1 and M2
+
+### Infrastructure Already in Place (from M1)
+- AudioWorklet processor files go in `public/worklets/*.js` — ESLint override exists with relaxed rules and AudioWorklet globals pre-declared
+- Ambient types for `AudioWorkletProcessor` and `registerProcessor` in `src/types/global.d.ts`
+- Feature extraction module goes in `src/audio/analysis/` (directory exists)
+- OnsetDetector module goes in `src/audio/capture/` or `src/audio/analysis/`
+
+### Infrastructure from M2 — Ready to Extend
+- **Capture worklet** (`public/worklets/capture-worklet.js`): Currently buffers raw PCM and posts to main thread. For M3, onset detection logic should run IN the worklet (same thread as capture) for lowest latency. Extend or create a new `tap-processor.js` worklet that includes FFT + onset detection.
+- **RingBuffer** (`src/audio/capture/RingBuffer.ts`): Circular Float32Array buffer. Can be reused for onset detector's internal ring buffer (last 10s of audio). Already tested with 15 unit tests.
+- **AudioCapture class** (`src/audio/capture/AudioCapture.ts`): Typed event emitter with `on('buffer', ...)`. The onset detector should hook into the buffer events, or better: replace the capture worklet with an onset-detecting worklet that posts onset events instead of raw buffers.
+- **Recording store** (`src/state/recordingStore.ts`): Has `incrementHitCount()` action — wire this to onset events for live hit count display. The `_amplitudes` array drives the waveform; onset events should also trigger `incrementHitCount()`.
+- **HitFlash component** (`src/components/recording/HitFlash.tsx`): Already renders edge glow on hitCount changes — just needs `incrementHitCount()` to be called from onset events.
+- **StatsBar component** (`src/components/recording/StatsBar.tsx`): Shows "Hits: N" with bounce animation. Already reads from store. BPM estimate placeholder ready.
+- **Test mocks**: `tests/helpers/setupTests.ts` has MockAudioWorkletNode, MockAudioWorkletPort, full navigator.mediaDevices.getUserMedia mock. `tests/helpers/audioMocks.ts` has `createMockAudioWorkletNode()` and `createMockMediaStream()` factories.
+- **Test fixtures**: `tests/fixtures/audio-samples.ts` has `generateSilence()`, `generateSineWave()`, `generateImpulse()` helpers. Extend with synthetic click/tap generators for onset testing.
+
+### TypeScript/Lint Rules to Watch
+- `verbatimModuleSyntax`: use `import type` for type-only imports
+- `strict-boolean-expressions`: no truthy checks — explicit comparisons required (`=== null`, `!== undefined`, `.length > 0`)
+- `noUncheckedIndexedAccess`: array index returns `T | undefined` — use `?? 0` for Float32Array access or `for...of` where possible
+- `prefer-for-of`: use `for (const x of arr)` instead of `for (let i = 0; ...)` when only the value is needed
+- `consistent-type-definitions`: use `interface` instead of `type` for object shapes
+- `restrict-template-expressions`: `String()` wrap for numbers in template literals
+- Import ordering: external → internal (@/) → parent → sibling → type imports, blank lines between groups
+- Test files: `tsconfig.test.json` via ESLint override, relaxed `any` rules. But `no-unsafe-member-access` and `unbound-method` still apply — use typed casts instead of `as any` chains.
+- **Worklet JS files**: Must use `var` declarations, old-style `function` syntax for `port.onmessage`, NO arrow functions in class methods, NO template literals, NO console.log, NO imports. Add `// @ts-nocheck` and `/* eslint-disable no-undef */` at top.
+
+### Lessons from M2 Agent Execution
+- **Pre-prompt before async API calls**: UI should show informational overlay BEFORE triggering browser permission prompts or async operations. Don't auto-trigger on mount — let user action (button click) initiate.
+- **Worklet double-buffer pattern**: capture-worklet.js uses a pool of 2 pre-allocated Float32Arrays and swaps between them. This avoids allocations in `process()`. Apply same pattern for onset detection FFT buffers.
+- **Store subscriptions for high-frequency data**: Use `store.subscribe()` outside React (not selectors) for data that updates faster than React should re-render (amplitudes, waveform data). Only use selectors for UI state.
+- **Synchronous stop/dispose**: AudioCapture.stop() and dispose() are synchronous — avoid `async` on methods that don't actually await anything (`require-await` rule).
+- **Canvas in jsdom**: jsdom doesn't implement `HTMLCanvasElement.getContext()` — mock it in setupTests or per-test with `vi.spyOn(HTMLCanvasElement.prototype, 'getContext')`.
+- **ResizeObserver in jsdom**: jsdom doesn't provide ResizeObserver — mock it globally in tests.
+
+### Test Fixtures
+- `tests/fixtures/audio-samples.ts` already has `generateSilence`, `generateSineWave`, `generateImpulse` — extend with `generateClickTrack(onsetTimesMs[], sampleRate)` for onset detection testing
+- Vitest benchmarks can use `vitest bench` — add `test:bench` script if needed
+
+### Performance Testing
+- Coverage thresholds are 80% — onset detection code will be measured
+- Vitest `pool: 'forks'` provides test isolation — safe for AudioWorklet simulation
+
+### Lessons from M3 Implementation (post-hoc)
+- **Spectral flux alone is insufficient for onset gating.** Ambient microphone noise produces flux values of 0.3-0.7 regularly. Dual gating required: flux threshold (>0.5) AND RMS energy gate (>0.01).
+- **Never pass `ref.current` to hooks as a reactive dependency.** React refs don't trigger re-renders. Wire event listeners directly where the instance is created.
+- **Never use `setTimeout` chains inside `useEffect`.** React cleanup kills them between calls. Process synchronously or use Web Workers for heavy work.
+- **Always handle all status values in conditional renders.** Missing `'complete'` handler caused stop to appear broken (fell through to recording view).
+- **Worklet files in `public/` may be cached by the browser.** Hard reload needed after changes. Vite HMR does not apply to AudioWorklet modules.
+- **Chrome DevTools MCP is invaluable** for debugging AudioWorklet + React integration at runtime.
+- **5 runtime bugs were found** that passed all 205 unit/integration tests. Runtime testing with real browser + microphone is essential.

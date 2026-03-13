@@ -1,0 +1,48 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.6);
+  animation: fadeIn var(--ease-state) forwards;
+}
+
+.modal {
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  padding: var(--space-6);
+  animation: slideUp var(--ease-spring) forwards;
+}
+
+.header {
+  margin-bottom: var(--space-4);
+}
+
+.title {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.content {
+  color: var(--text-secondary);
+}
+
+/* Desktop: centered modal */
+@media (min-width: 640px) {
+  .backdrop {
+    align-items: center;
+  }
+
+  .modal {
+    width: min(480px, 90vw);
+    max-height: 80vh;
+    border-radius: var(--radius-xl);
+  }
+}

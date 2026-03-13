@@ -1,0 +1,80 @@
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 300px;
+}
+
+.description {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.progressWrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.progressBar {
+  width: 100%;
+  height: 8px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--accent-primary);
+  border-radius: var(--radius-full);
+  transition: width 200ms ease-out;
+}
+
+.progressText {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  text-align: center;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+}
+
+.successWrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.checkmark {
+  width: 48px;
+  height: 48px;
+  animation: spinIn var(--ease-spring) forwards;
+}
+
+.checkPath {
+  animation: checkDraw 400ms ease-out 200ms forwards;
+  stroke-dashoffset: 24;
+}
+
+.successIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--status-success);
+  padding: var(--space-4) 0;
+}
+
+.errorMsg {
+  font-size: var(--text-sm);
+  color: var(--status-error);
+  text-align: center;
+  padding: var(--space-2) 0;
+}

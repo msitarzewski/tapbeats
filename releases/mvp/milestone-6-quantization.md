@@ -85,3 +85,92 @@ Implement the quantization engine that takes messy human timing and snaps it to 
 - `product-requirements.md` — FR-037 through FR-044
 - `audio-engineering.md` — Section 5 (Quantization algorithm)
 - `technical-architecture.md` — Section 6 (Quantization engine)
+
+## Implementation Notes from Previous Milestones
+
+### Infrastructure from M2
+- **RingBuffer** (`src/audio/capture/RingBuffer.ts`): Reusable circular buffer pattern — could be adapted for onset history or quantization candidate windows.
+- **Store subscription pattern**: High-frequency data (amplitudes) uses `store.subscribe()` outside React to avoid re-render storms. Apply same pattern for real-time quantization preview updates.
+
+### Infrastructure Already in Place (from M1)
+- Quantization engine goes in `src/audio/quantization/` (directory exists)
+- Slider component available for strength control (0-100%), BPM adjustment
+- Button component (3 variants) for grid resolution selector, before/after toggle
+- Zustand store pattern established — extend or create new slice in `src/state/`
+- Vitest benchmarks can validate < 200ms recalculation budget
+
+### TypeScript/Lint Rules to Watch
+- `verbatimModuleSyntax`: use `import type` for type-only imports
+- `strict-boolean-expressions`: no truthy checks — explicit comparisons required
+- `noUncheckedIndexedAccess`: histogram bin access returns `T | undefined` — must narrow
+- `restrict-template-expressions`: `String()` wrap numbers (e.g., BPM display)
+- Import ordering: blank lines between groups
+- Web Worker files: may need ESLint override similar to AudioWorklet override if using separate `.ts` worker files
+
+### Performance Notes
+- Vitest `pool: 'forks'` gives isolated test processes — good for CPU-intensive benchmarks
+- Coverage thresholds at 80% — quantization math will be measured
+- Vite build target is ES2022 — can use modern JS features freely
+
+### Lessons from M5 (Instrument Assignment)
+
+#### Architecture Established
+- **PlaybackEngine singleton** (`src/audio/playback/PlaybackEngine.ts`): Manages single AudioContext + sample buffer cache. M6 quantization preview playback should use `PlaybackEngine.getInstance()` — do NOT create another AudioContext.
+- **Smart defaults pattern** (`src/audio/playback/smartDefaults.ts`): Pure function that scores clusters against idealized profiles. If quantization needs heuristics (e.g., auto-detecting swing), follow the same pure-function-with-scoring pattern.
+- **Store extension pattern**: M5 added `instrumentAssignments` + 4 actions to existing `clusterStore`. M6 should similarly extend `timelineStore` (or create new `quantizationStore`) following the same pattern: state field + action methods.
+
+#### Data Flow for M6
+- Quantization receives: `clusterStore.clusters` (with `instrumentAssignments`) + `recordingStore._onsets` (onset timestamps)
+- Each cluster has an assigned instrument ID (or 'skip') — quantization should respect skip by excluding those hits
+- BPM estimation already exists in `estimateBpm.ts` (M3) — enhance for quantization-grade accuracy
+
+#### Code Patterns Learned
+- CSS module template literals trigger `restrict-template-expressions` — use `[styles.a, styles.b].join(' ')` instead of template literals
+- `string | 'skip'` is redundant per eslint — use plain `string` type, document special values as convention
+- `??=` operator preferred by eslint over `if (x === undefined) x = y`
+- 6 parallel agents worked well for M5 scope; quantization is more sequential (algorithm depends on BPM detection), so 3-4 agents may be better
+
+### Lessons from M4 (Clustering)
+
+#### Architecture Patterns to Follow
+- **Pure algorithm functions**: All clustering algorithms (`src/audio/clustering/`) are pure functions with no store access. Quantization engine should follow the same pattern: pure math functions + a pipeline entry point, with store integration at the hook level.
+- **Optional seeded PRNG**: Clustering accepts `rng?: () => number` for deterministic testing. If quantization uses any randomness (humanization), follow same pattern.
+- **Edge case handling in pipeline**: `runClustering()` handles 8+ edge cases upfront (0 hits, 1 hit, <5 hits, low variance, etc.). Quantization pipeline should handle similar edge cases (0 hits, 1 hit, no inter-onset intervals, etc.).
+
+#### TypeScript Gotchas
+- **`exactOptionalPropertyTypes`**: Can't pass `{ option }` where `option` might be `undefined`. Use conditional: `option !== undefined ? { option } : undefined`.
+- **`restrict-template-expressions`**: Wrap numbers in `String()` inside template literals.
+- **`?? 0` everywhere**: Every array indexed access needs it due to `noUncheckedIndexedAccess`.
+
+#### Test Infrastructure Available
+- `tests/helpers/clusteringFixtures.ts` has `seededRng(seed)` — reuse for any stochastic test.
+- `createMockDetectedHits(featureGroups)` creates realistic DetectedHit arrays from feature vectors.
+- Test pattern: assert invariants (correct BPM range, grid alignment within tolerance) not exact values.
+
+#### Data Flow Context
+- Quantization receives hits from `clusterStore.assignments` + `recordingStore._onsets` (onset timestamps + cluster IDs)
+- BPM estimation already exists in `estimateBpm.ts` (M3) — may need enhancement or replacement for quantization-grade accuracy
+
+### Lessons from M3 (Onset Detection)
+
+#### React Patterns
+- **Never pass `ref.current` to hooks as a reactive dependency.** React refs don't trigger re-renders, so hooks receiving `ref.current` always get the initial value (usually `null`). Wire event listeners directly where the instance is created (e.g., in `startRecording()` alongside other listeners).
+- **Never use `setTimeout` chains inside `useEffect`.** React's effect cleanup runs between setTimeout calls (especially in StrictMode), killing the chain. For post-processing work triggered by state changes, process synchronously within the effect body wrapped in try/catch. If work is too heavy (>3s), use a Web Worker instead.
+- **Always handle all status values in conditional renders.** If a component renders different views based on status (idle, recording, processing, complete), ensure every status has a handler. Missing handlers cause the component to fall through to an unexpected default view.
+
+#### AudioWorklet Patterns
+- **Worklet files in `public/` may be cached by the browser.** After modifying a worklet file, a hard reload (Cmd+Shift+R) or cache-busting query param is needed. Vite's HMR does not apply to AudioWorklet modules.
+- **Spectral flux alone is insufficient for onset gating.** Ambient microphone noise produces spectral flux values of 0.3-0.7 regularly. Use dual gating: spectral flux threshold (>0.5) AND RMS energy gate (>0.01). The energy gate rejects quiet noise regardless of spectral variation.
+- **AudioWorklet JS rules**: `var` declarations, old-style `function` syntax, NO arrow functions, NO template literals, NO `console.log` (not available in worklet scope). Add `// @ts-nocheck` and `/* eslint-disable no-undef */` at top.
+- **Pre-allocate all buffers in worklet constructor.** Never allocate in `process()` — it runs on the audio thread and allocations cause glitches. Only exception: re-allocating snippet buffer after Transferable transfer.
+
+#### DSP & TypeScript
+- **Use `?? 0` for typed array access** to satisfy `no-non-null-assertion` lint rule. E.g., `arr[i] ?? 0` instead of `arr[i]!`.
+- **Use dot notation for object property access** (`f.rms`) not bracket notation (`f["rms"]`) to satisfy `dot-notation` lint rule.
+- **Synchronous feature extraction is fast enough**: ~5ms per hit × 500 max = ~2.5s worst case. Acceptable since processing overlay is shown.
+
+#### Testing & Debugging
+- **Chrome DevTools MCP is highly effective** for debugging AudioWorklet + React integration issues at runtime. Use it to inspect console logs, take snapshots, and interact with the UI programmatically.
+- **Canvas in jsdom**: `HTMLCanvasElement.getContext()` returns `null` — mock it in tests with `vi.spyOn(HTMLCanvasElement.prototype, 'getContext')`.
+- **ResizeObserver in jsdom**: Not provided — mock globally in test setup.
+- **Use `store.subscribe()` (not selectors) for high-frequency canvas rendering** that runs outside React's render cycle (e.g., ProtoTimeline, LiveWaveform).

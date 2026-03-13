@@ -1,0 +1,40 @@
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+  padding: var(--space-6) var(--space-4);
+  animation: staggerSlideUp var(--ease-spring) forwards;
+}
+
+.indicator {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  font-family: var(--font-mono);
+  color: var(--accent-primary);
+}
+
+.stepNumber {
+  font-size: var(--text-2xl);
+  font-weight: 700;
+}
+
+.stepTotal {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.title {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.description {
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+  max-width: 320px;
+  line-height: 1.6;
+}

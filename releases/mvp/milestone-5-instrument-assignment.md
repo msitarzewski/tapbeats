@@ -87,3 +87,84 @@ Build the sample library and instrument assignment flow. Users browse available 
 - `audio-engineering.md` — Sections 6-7 (Playback architecture, Sample library)
 - `technical-architecture.md` — Section 7 (Playback engine)
 - `ui-design.md` — Cluster review / instrument assignment screen
+
+## Implementation Notes from Previous Milestones
+
+### Infrastructure from M2
+- **Audio types pattern**: `src/types/audio.ts` shows how to define shared interfaces/constants. Follow same pattern for sample/instrument types.
+- **Event emitter pattern**: `AudioCapture` class uses typed Map-based event emitter — reuse for playback engine events.
+- **Canvas rendering pattern**: `useWaveformRenderer.ts` shows RAF loop + store subscription outside React — apply same pattern for sample waveform previews.
+
+### Infrastructure Already in Place (from M1)
+- Sample files go in `src/assets/samples/` (directory exists) or `public/` for runtime loading
+- Playback engine module goes in `src/audio/playback/` (directory exists)
+- Modal component available for instrument browser (responsive bottom sheet on mobile, centered on desktop)
+- Card and Button components ready for instrument grid UI
+- Web Audio mocks in `tests/helpers/` — extend with `AudioBufferSourceNode` mocks for sample playback testing
+- Cluster colors `--cluster-0` through `--cluster-7` defined in theme
+
+### TypeScript/Lint Rules to Watch
+- `verbatimModuleSyntax`: use `import type` for type-only imports
+- `strict-boolean-expressions`: no truthy checks — `if (sample !== undefined)` not `if (sample)`
+- `noUncheckedIndexedAccess`: map/array lookups return `T | undefined`
+- Import ordering: blank lines between groups, CSS modules before type imports
+- Async mocks: use `return Promise.resolve()` not `async`
+
+### Sample Bundle Considerations
+- No SSL locally — dev server is `http://localhost:8087`
+- Vite serves `public/` directory as-is — samples here are not processed by bundler
+- `src/assets/` files are processed by Vite (hashed filenames, tree-shaken)
+- Choose `public/` for runtime-loaded samples, `src/assets/` for import-time samples
+
+### Lessons from M4 (Clustering)
+
+#### Cluster Store Architecture
+- **`clusterStore` state** (`src/state/clusterStore.ts`): `status`, `clusters: ClusterData[]`, `featureVectors: number[][]`, `normalization`, `assignments: number[]`, `silhouette`, `error`
+- **`ClusterData` fields**: `id`, `hitIndices: number[]`, `centroid: number[]`, `hitCount`, `representativeHitIndex`, `color: string` (CSS var like `var(--cluster-0)`)
+- **M5 needs to extend clusterStore** with instrument assignment fields (e.g., `instrumentAssignments: Map<clusterId, instrumentId>`)
+- **Split/merge operations** in store read hits from `recordingStore.getState()._onsets` for representative hit selection — any new store actions needing hit data should follow same pattern
+
+#### AudioContext Management
+- **`useClusterPlayback.ts`** creates AudioContext lazily on first play, stores in ref, cleans up on unmount
+- **M5's `PlaybackEngine`** should either share this AudioContext or replace `useClusterPlayback` entirely
+- Only one AudioContext should be active at a time (browser limit ~6, iOS Safari limit 1)
+
+#### UI Integration Points
+- **ClusterScreen** (`src/components/clustering/ClusterScreen.tsx`) currently has NO instrument chips — M5 adds these to ClusterCard
+- **ClusterCard** has header (play button, name, hit count) + waveform — instrument chip goes below waveform or in header
+- **Card component** now accepts `style` prop for CSS custom property injection (added in M4)
+- **ActionBar** has default/split/merge modes — Continue button navigates to `/timeline`
+
+#### TypeScript Gotcha: `exactOptionalPropertyTypes`
+- Can't pass `{ rng }` where `rng` might be `undefined` and the interface says `rng?: () => number`
+- Fix: `rng !== undefined ? { rng } : undefined` or spread `...(rng !== undefined ? { rng } : {})`
+- This catches any optional prop pattern — watch for it in instrument config options
+
+#### Test Patterns
+- **Seeded PRNG** (`tests/helpers/clusteringFixtures.ts`): `seededRng(seed)` returns deterministic `() => number`. Use for any algorithm with random init.
+- **Test invariants not exact assignments**: K-means is non-deterministic without seeding. Test: "same-group points share labels", "correct k", "silhouette > threshold".
+- **`createMockDetectedHits(featureGroups)`**: Creates DetectedHit[] with proper AudioFeatures from 12-dim vectors. Reuse in M5 tests.
+
+### Lessons from M3 (Onset Detection)
+
+#### React Patterns
+- **Never pass `ref.current` to hooks as a reactive dependency.** React refs don't trigger re-renders, so hooks receiving `ref.current` always get the initial value (usually `null`). Wire event listeners directly where the instance is created (e.g., in `startRecording()` alongside other listeners).
+- **Never use `setTimeout` chains inside `useEffect`.** React's effect cleanup runs between setTimeout calls (especially in StrictMode), killing the chain. For post-processing work triggered by state changes, process synchronously within the effect body wrapped in try/catch. If work is too heavy (>3s), use a Web Worker instead.
+- **Always handle all status values in conditional renders.** If a component renders different views based on status (idle, recording, processing, complete), ensure every status has a handler. Missing handlers cause the component to fall through to an unexpected default view.
+
+#### AudioWorklet Patterns
+- **Worklet files in `public/` may be cached by the browser.** After modifying a worklet file, a hard reload (Cmd+Shift+R) or cache-busting query param is needed. Vite's HMR does not apply to AudioWorklet modules.
+- **Spectral flux alone is insufficient for onset gating.** Ambient microphone noise produces spectral flux values of 0.3-0.7 regularly. Use dual gating: spectral flux threshold (>0.5) AND RMS energy gate (>0.01). The energy gate rejects quiet noise regardless of spectral variation.
+- **AudioWorklet JS rules**: `var` declarations, old-style `function` syntax, NO arrow functions, NO template literals, NO `console.log` (not available in worklet scope). Add `// @ts-nocheck` and `/* eslint-disable no-undef */` at top.
+- **Pre-allocate all buffers in worklet constructor.** Never allocate in `process()` — it runs on the audio thread and allocations cause glitches. Only exception: re-allocating snippet buffer after Transferable transfer.
+
+#### DSP & TypeScript
+- **Use `?? 0` for typed array access** to satisfy `no-non-null-assertion` lint rule. E.g., `arr[i] ?? 0` instead of `arr[i]!`.
+- **Use dot notation for object property access** (`f.rms`) not bracket notation (`f["rms"]`) to satisfy `dot-notation` lint rule.
+- **Synchronous feature extraction is fast enough**: ~5ms per hit × 500 max = ~2.5s worst case. Acceptable since processing overlay is shown.
+
+#### Testing & Debugging
+- **Chrome DevTools MCP is highly effective** for debugging AudioWorklet + React integration issues at runtime. Use it to inspect console logs, take snapshots, and interact with the UI programmatically.
+- **Canvas in jsdom**: `HTMLCanvasElement.getContext()` returns `null` — mock it in tests with `vi.spyOn(HTMLCanvasElement.prototype, 'getContext')`.
+- **ResizeObserver in jsdom**: Not provided — mock globally in test setup.
+- **Use `store.subscribe()` (not selectors) for high-frequency canvas rendering** that runs outside React's render cycle (e.g., ProtoTimeline, LiveWaveform).
