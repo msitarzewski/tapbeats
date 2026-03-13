@@ -2,9 +2,9 @@
 
 ## Current State
 
-**Phase**: Milestone 7 complete — timeline enhancement implemented.
-**Sprint**: Implementation — track controls, zoom/scroll, hit editing, undo/redo, keyboard shortcuts
-**Branch**: `milestone-7/timeline-enhancement` (from `milestone-6/quantization`)
+**Phase**: Milestone 8 complete — session management & WAV export implemented.
+**Sprint**: Implementation — IndexedDB persistence, session CRUD, WAV export, settings, auto-save
+**Branch**: `milestone-8/session-export` (from `milestone-7/timeline-enhancement`)
 **Last Updated**: 2026-03-13
 
 ---
@@ -18,36 +18,46 @@
 - Milestone 5: Instrument Assignment & Sample Library — **COMPLETE** (on `milestone-5/instrument-assignment`)
 - Milestone 6: Quantization Engine — **COMPLETE** (on `milestone-6/quantization`)
 - Milestone 7: Timeline Enhancement — **COMPLETE** (on `milestone-7/timeline-enhancement`)
-  - New timelineStore (Zustand): track controls, zoom/scroll, undo/redo (50-depth)
-  - Extended quantizationStore: +4 write-back actions (setQuantizedHits, addHit, removeHit, updateHitTime)
-  - PlaybackEngine: per-track gain chain (source → velocityGain → trackGain → masterGain → destination)
-  - DOM TrackHeaders (accessible mute/solo), TrackControls (volume sliders)
-  - Canvas: zoom/scroll, beat/bar ruler, mute visuals, viewport culling, drag preview
-  - Hit editing: drag (grid snap), double-click add, right-click delete
-  - Keyboard shortcuts: Space, L, M, S, 1-9, Ctrl+Z/Y, +/-
-  - Seamless loop with pre-scheduling
-  - Responsive mobile layout
-  - 495 tests passing (46 files), 0 lint errors, production build succeeds (101KB app)
+- Milestone 8: Session Management & WAV Export — **COMPLETE** (on `milestone-8/session-export`)
+  - New types: `session.ts` (SessionMetadata, SerializedSession, AudioBlobEntry, SessionListItem, ExportProgress), `settings.ts` (SettingsState, ThemeMode)
+  - New stores: `sessionStore.ts` (Zustand: sessions list, current session, save status, storage info), `settingsStore.ts` (Zustand + localStorage persist: theme, BPM, grid, sensitivity)
+  - Persistence layer: `db.ts` (IndexedDB with 2 object stores: sessions + audioBlobs), `serialization.ts` (serialize/deserialize full app state + audio blobs), `SessionManager.ts` (save/load/delete/rename sessions, auto-save with debounce)
+  - WAV export: `wavEncoder.ts` (stereo 16-bit PCM RIFF), `renderMix.ts` (OfflineAudioContext with track gain chain mirroring PlaybackEngine), `exportWav.ts` (download trigger)
+  - Hooks: `useAutoSave.ts` (SessionManager lifecycle + store subscriptions), `useExportWav.ts` (export state + progress)
+  - UI: `SessionCard.tsx` (name, date, BPM, duration, delete), `ExportModal.tsx` (progress bar, success/error states), HomeScreen (session list + empty state + delete confirmation), SettingsScreen (BPM, grid, sensitivity, theme, storage usage, clear all), TransportBar (+save/export buttons), TimelineScreen (+auto-save + export modal)
+  - Extended: `Icon.tsx` (+check, download, folder, save, settings), `useKeyboardShortcuts.ts` (+Ctrl+S save, Ctrl+E export)
+  - `RingBuffer.fromArray()` static method for session restore
+  - `fake-indexeddb` dev dependency for unit tests
+  - 605 tests passing (59 files, +110 new), 0 lint errors, production build succeeds (127KB app + 143KB vendor)
 
 ---
 
-## Key Implementation Details (M7)
+## Key Implementation Details (M8)
 
-### Data Flow
+### Session Persistence Architecture
 ```
-quantizationStore.quantizedHits (source of truth for hit positions)
-  + timelineStore.trackConfigs (mute/solo/volume per track)
-  + timelineStore.pixelsPerSecond, scrollOffsetSeconds (zoom/scroll)
-  → useTimelineRenderer (canvas: grid, hits, ghost markers, cursor, ruler)
-  → useQuantizedPlayback (scheduler filters by activeTrackIds, routes through track gains)
-  → PlaybackEngine (trackGain → masterGain → destination)
+SessionManager (orchestrator)
+  → serializeSession() reads all 4 data stores → SerializedSession + AudioBlobEntry[]
+  → db.ts: putSession() + putAudioBlobs() → IndexedDB (sessions + audioBlobs object stores)
+  → restoreStores(): reset all → recording → cluster → quantization → timeline
 
-Timeline edits:
-  → pushUndo() → modify quantizationStore.quantizedHits → renderer auto-updates
-  → undo()/redo() → restore snapshot → write back to quantizationStore
+Auto-save:
+  → useAutoSave hook creates SessionManager, subscribes to cluster/quantization/timeline stores
+  → Debounced 2s save after any store change (only if currentSessionId exists)
 ```
 
-### Store Architecture (5 stores)
+### WAV Export Pipeline
+```
+renderMix() → OfflineAudioContext
+  → Mirrors PlaybackEngine gain chain: source → velocityGain → trackGain → masterGain → destination
+  → Filters by active tracks (mute/solo logic)
+  → Schedules all quantizedHits with correct timing
+  → Returns AudioBuffer
+→ encodeWav() → stereo 16-bit PCM RIFF WAV Blob
+→ triggerDownload() → browser download
+```
+
+### Store Architecture (7 stores)
 | Store | Purpose |
 |-------|---------|
 | `appStore` | Navigation, permissions |
@@ -55,30 +65,34 @@ Timeline edits:
 | `clusterStore` | Clusters, assignments, instruments |
 | `quantizationStore` | BPM, grid, strength, quantizedHits + write-back actions |
 | `timelineStore` | Track controls, zoom/scroll, undo/redo |
+| `sessionStore` | Session list, current session ID/name, save status, storage info |
+| `settingsStore` | Theme, default BPM/grid/sensitivity (localStorage persist via Zustand middleware) |
 
-### Key Components (M7)
-- **State**: `timelineStore.ts` (Zustand, undo/redo snapshots via structuredClone)
-- **Audio**: `PlaybackEngine.ts` (per-track gain chain, master gain)
-- **Hooks**: `useTimelineEditing.ts` (hit-testing, drag, add, delete), `useKeyboardShortcuts.ts`
-- **UI**: `TrackHeaders.tsx` (DOM, accessible), `TrackControls.tsx` (volume sliders)
-- **Modified**: `useTimelineRenderer.ts` (zoom/scroll/ruler), `useQuantizedPlayback.ts` (mute/solo + seamless loop)
+### IndexedDB Schema
+- **Database**: `tapbeats`, version 1
+- **Object store `sessions`**: keyPath `id`, index `by-updated` on `metadata.updatedAt`
+- **Object store `audioBlobs`**: keyPath `key` (format: `{sessionId}:{type}:{subId}`), index `by-session` on `sessionId`
+- Audio blobs store raw recording as `{id}:raw` and per-hit snippets as `{id}:snippet:{index}`
 
 ---
 
 ## Next Actions
 
-1. **Browser verification of M7** — track controls, zoom/scroll, editing, undo/redo, keyboard shortcuts, loop
-2. **Milestone 8: Session Management & WAV Export** — IndexedDB persistence, WAV offline rendering
-3. **Milestone 9: Polish, PWA & Cross-Browser** — Service worker, accessibility, animations
+1. **Browser verification of M8** — session save/load/delete, WAV export, settings persistence, auto-save
+2. **Milestone 9: Polish, PWA & Cross-Browser** — Service worker, accessibility, animations
+3. **Milestone 10: Launch** — Deployment, final QA, documentation
 
 ---
 
 ## Context Notes
 
-- Single-session sequential implementation was efficient for M7 (all phases in one pass)
-- Undo snapshots use structuredClone — fast for flat objects, not suitable for IndexedDB persistence
-- quantizationStore write-back actions bypass recompute — session save must persist quantizedHits directly when manual edits exist
-- PlaybackEngine track gain nodes persist during playback — created on play start, cleaned up on stop
-- DOM track headers work well alongside canvas — flex layout syncs heights via shared TRACK_HEIGHT constant
-- `no-non-null-assertion` lint rule: Use `if (x === undefined) return` guard after `.pop()` instead of `!`
-- `no-confusing-void-expression`: Void arrow functions need `{ }` braces — auto-fixable with `--fix`
+- Session serialization captures all 4 data stores (recording, cluster, quantization, timeline) + audio blobs
+- Audio blobs stored separately from session JSON for efficient IndexedDB handling (avoid serializing large ArrayBuffers in JSON)
+- `RingBuffer.fromArray()` static method added to reconstruct ring buffer from stored raw audio
+- `restoreStores()` resets all stores first, then restores in dependency order: recording → cluster → quantization → timeline
+- Instrument assignments restored after `setClustering` (which clears them)
+- Undo/redo stacks NOT persisted (not useful across sessions, and structuredClone snapshots aren't suitable for IndexedDB)
+- Settings use `zustand/middleware` `persist` with `createJSONStorage(() => localStorage)` — separate from IndexedDB
+- WAV export uses same mute/solo/volume logic as real-time playback
+- Build size grew 26KB (101KB → 127KB app) due to IndexedDB + serialization + WAV encoding
+- `fake-indexeddb` provides full IndexedDB implementation for unit tests in jsdom

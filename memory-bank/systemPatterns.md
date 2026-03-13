@@ -43,17 +43,19 @@ No Web Worker needed for v1 -- clustering is fast enough on main thread (<200ms 
 
 ## State Management Pattern
 
-Five independent **Zustand store slices**, each created with `create()`. No combined global store; cross-store reads via direct imports.
+Seven independent **Zustand store slices**, each created with `create()`. No combined global store; cross-store reads via direct imports.
 
 | Store | Purpose | Key State |
 |-------|---------|-----------|
 | `appStore` | Navigation, permissions, errors | `currentScreen`, `micPermission`, `audioContextResumed` |
 | `recordingStore` | Active recording lifecycle | `status` (idle/countdown/recording/processing), `onsets[]`, `elapsedSeconds` |
 | `clusterStore` | Cluster results and assignments | `result: ClusterResult`, `sampleAssignments`, `clusterLabels` |
+| `quantizationStore` | BPM, grid, quantized hits | `bpm`, `gridResolution`, `strength`, `swingAmount`, `quantizedHits[]`, write-back actions |
 | `timelineStore` | Track controls, zoom/scroll, undo/redo | `trackConfigs[]`, `masterVolume`, `pixelsPerSecond`, `scrollOffsetSeconds`, `undoStack`, `redoStack` |
-| `sessionStore` | Saved sessions, active session | `sessions[]`, `activeSessionId`, persistence |
+| `sessionStore` | Saved sessions, active session | `sessions[]`, `currentSessionId`, `saveStatus`, `storageUsed/Quota` |
+| `settingsStore` | User preferences (localStorage) | `theme`, `defaultBpm`, `defaultGridResolution`, `defaultSensitivity` |
 
-**Middleware**: `persistMiddleware` (IndexedDB via idb-keyval), `devtoolsMiddleware` (Redux DevTools integration). Subscriptions with selectors prevent unnecessary re-renders during high-frequency audio updates.
+**Middleware**: `persist` (localStorage via `createJSONStorage` for settings only), `devtoolsMiddleware` (Redux DevTools integration). Subscriptions with selectors prevent unnecessary re-renders during high-frequency audio updates.
 
 ## Audio Processing Patterns
 
@@ -128,15 +130,21 @@ Five independent **Zustand store slices**, each created with `create()`. No comb
 
 **Hit Editing**: Hit-testing uses same `timeToX()` mapping as rendering (12px threshold). Drag preview stored in ref (not state) for 60fps. Grid snap via `nearestGridPoint()`. All edits push undo before mutation.
 
-## Storage Pattern
+## Storage Pattern (implemented in M8)
 
-**IndexedDB** with two object stores:
-- `session-meta`: Lightweight `SessionMeta` objects for fast listing
-- `session-data`: Full `Session` objects (loaded on demand)
+**IndexedDB** (`tapbeats` database, version 1) with two object stores:
+- `sessions`: Full `SerializedSession` objects (keyPath `id`, index `by-updated` on `metadata.updatedAt` for sorted listing)
+- `audioBlobs`: Binary audio data as `AudioBlobEntry` objects (keyPath `key` format: `{sessionId}:{type}:{subId}`, index `by-session` on `sessionId`)
 
-Audio snippets stored as `Float32Array` blobs. Raw recording optionally stored as WAV-encoded `Blob` for export. Session format versioned for forward-compatible migration.
+**Serialization strategy**: All 4 data stores (recording, cluster, quantization, timeline) serialized to a single `SerializedSession` JSON object. Audio data (raw recording + per-hit snippets) stored as separate `AudioBlobEntry` objects with `ArrayBuffer` data. This separation keeps session listing fast (no binary deserialization) while supporting efficient bulk audio storage.
 
-**Zustand persistence**: `idb-keyval` middleware for serializable state slices. Non-serializable refs (`_audioContext`, `_playbackEngine`) excluded from persistence.
+**Restore order**: Reset all stores → recording (onsets + ring buffer from blobs) → cluster (setClustering + assignments) → quantization (hits + config) → timeline (track configs + volume). Order matters because `setClustering` clears `instrumentAssignments`.
+
+**SessionManager**: Orchestrates save/load/delete/rename operations. Auto-save via store subscriptions (cluster, quantization, timeline) with 2s debounce. Manages session list refresh and storage quota tracking.
+
+**Settings persistence**: `settingsStore` uses Zustand `persist` middleware with `createJSONStorage(() => localStorage)`. Separate from IndexedDB — simple key-value settings don't warrant async storage.
+
+**What's NOT persisted**: Undo/redo stacks (not useful across sessions), `pixelsPerSecond`/`scrollOffsetSeconds` (UI-only zoom/scroll state), `selectedTrackIndex` (reset on load), raw amplitude arrays.
 
 ## Undo/Redo Pattern (implemented in M7)
 
@@ -148,6 +156,18 @@ Audio snippets stored as `Float32Array` blobs. Raw recording optionally stored a
 - `redo()`: push current state to undo, restore snapshot, write hits back
 - Cross-store write-back: timelineStore owns undo stack, writes back to quantizationStore on restore
 - Audio snippets NOT copied (immutable after creation)
+
+## WAV Export Pattern (implemented in M8)
+
+**Pipeline**: `renderMix()` → `encodeWav()` → `triggerDownload()`
+
+1. **renderMix()**: Creates `OfflineAudioContext` (stereo, 44.1kHz). Mirrors PlaybackEngine's gain chain: `AudioBufferSourceNode → GainNode(velocity) → GainNode(trackVolume) → GainNode(masterVolume) → destination`. Respects mute/solo (same logic as real-time playback). Schedules all active `quantizedHits` at their quantized times. Adds 2s tail for sample decay.
+2. **encodeWav()**: Encodes `AudioBuffer` as stereo 16-bit PCM WAV (RIFF format). Mono input duplicated to both channels. Float-to-int16 clamping.
+3. **triggerDownload()**: Creates blob URL, programmatic `<a>` click, cleanup with setTimeout.
+
+**Progress reporting**: Callback at key stages (rendering 0-80%, encoding 85-95%, complete 100%). UI shows progress bar in ExportModal.
+
+**Filename**: `tapbeats-{sanitized-name}-{bpm}bpm.wav`
 
 ## App State Machine
 

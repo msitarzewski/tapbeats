@@ -1,7 +1,9 @@
 import { Icon } from '@/components/shared/Icon';
 import { Slider } from '@/components/shared/Slider';
 import { useQuantizationStore } from '@/state/quantizationStore';
+import { useSessionStore } from '@/state/sessionStore';
 import type { PlaybackMode } from '@/types/quantization';
+import type { SaveStatus } from '@/types/session';
 
 import styles from './TransportBar.module.css';
 
@@ -19,7 +21,17 @@ interface TransportBarProps {
   readonly onRedo: () => void;
   readonly canUndo: boolean;
   readonly canRedo: boolean;
+  readonly onSave: () => void;
+  readonly onExport: () => void;
+  readonly onSessionNameChange: (name: string) => void;
 }
+
+const SAVE_LABELS: Record<SaveStatus, string> = {
+  idle: 'Save',
+  saving: 'Saving...',
+  saved: 'Saved',
+  error: 'Save failed',
+};
 
 export function TransportBar({
   isPlaying,
@@ -35,9 +47,14 @@ export function TransportBar({
   onRedo,
   canUndo,
   canRedo,
+  onSave,
+  onExport,
+  onSessionNameChange,
 }: TransportBarProps) {
   const playbackMode = useQuantizationStore((s) => s.playbackMode);
   const setPlaybackMode = useQuantizationStore((s) => s.setPlaybackMode);
+  const sessionName = useSessionStore((s) => s.currentSessionName);
+  const saveStatus = useSessionStore((s) => s.saveStatus);
 
   const toggleMode = () => {
     const next: PlaybackMode = playbackMode === 'original' ? 'quantized' : 'original';
@@ -58,8 +75,29 @@ export function TransportBar({
     .filter(Boolean)
     .join(' ');
 
+  const saveClass = [styles.transportBtn, saveStatus === 'saved' ? styles.savedBtn : '']
+    .filter(Boolean)
+    .join(' ');
+
   return (
     <div className={styles.transport}>
+      <button className={saveClass} onClick={onSave} aria-label={SAVE_LABELS[saveStatus]}>
+        <Icon name="save" size={18} />
+      </button>
+
+      <span className={styles.sessionName}>
+        <input
+          className={styles.sessionNameInput}
+          value={sessionName}
+          onChange={(e) => {
+            onSessionNameChange(e.target.value);
+          }}
+          aria-label="Session name"
+        />
+      </span>
+
+      <div className={styles.divider} />
+
       <button
         className={styles.transportBtn}
         onClick={onUndo}
@@ -124,6 +162,12 @@ export function TransportBar({
           step={1}
         />
       </div>
+
+      <div className={styles.divider} />
+
+      <button className={styles.transportBtn} onClick={onExport} aria-label="Export WAV">
+        <Icon name="download" size={18} />
+      </button>
     </div>
   );
 }

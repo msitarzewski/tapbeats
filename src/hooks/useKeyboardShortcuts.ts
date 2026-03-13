@@ -9,6 +9,8 @@ interface PlaybackControls {
   pause: () => void;
   stop: () => void;
   toggleLoop: () => void;
+  onSave?: () => void;
+  onExport?: () => void;
 }
 
 export function useKeyboardShortcuts(playback: PlaybackControls): void {
@@ -21,6 +23,12 @@ export function useKeyboardShortcuts(playback: PlaybackControls): void {
         target instanceof HTMLTextAreaElement ||
         target instanceof HTMLSelectElement
       ) {
+        // Allow Ctrl+S even in inputs
+        const isMod = e.ctrlKey || e.metaKey;
+        if (isMod && e.key === 's') {
+          e.preventDefault();
+          playback.onSave?.();
+        }
         return;
       }
 
@@ -58,13 +66,24 @@ export function useKeyboardShortcuts(playback: PlaybackControls): void {
 
         case 's':
         case 'S':
-          if (!isMod) {
+          if (isMod) {
+            e.preventDefault();
+            playback.onSave?.();
+          } else {
             e.preventDefault();
             const { trackConfigs, selectedTrackIndex, setTrackSolo } = useTimelineStore.getState();
             const config = trackConfigs[selectedTrackIndex];
             if (config !== undefined) {
               setTrackSolo(config.trackId, !config.soloed);
             }
+          }
+          break;
+
+        case 'e':
+        case 'E':
+          if (isMod) {
+            e.preventDefault();
+            playback.onExport?.();
           }
           break;
 

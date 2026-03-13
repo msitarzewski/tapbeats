@@ -83,7 +83,7 @@ Groups in order:
 
 ## State Management (Zustand)
 
-- Separate store files per domain: `appStore`, `recordingStore`, `clusterStore`, `timelineStore`, `sessionStore`.
+- Separate store files per domain: `appStore`, `recordingStore`, `clusterStore`, `quantizationStore`, `timelineStore`, `sessionStore`, `settingsStore`.
 - Zustand selectors with shallow equality (`useStore(selector, shallow)`) for derived state.
 - Persistence middleware connects to IndexedDB for session save/load.
 - Non-serializable runtime objects (AudioContext, engines) prefixed with `_` and excluded from persistence.

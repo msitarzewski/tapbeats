@@ -136,8 +136,26 @@
 - Pattern: Single-session sequential implementation (types → stores → audio → hooks → UI → tests)
 - See: [releases/mvp/milestone-7-timeline-playback.md](../../../releases/mvp/milestone-7-timeline-playback.md)
 
+### 2026-03-13: Milestone 8 -- Session Management & WAV Export
+- **Branch**: `milestone-8/session-export` (from `milestone-7/timeline-enhancement`)
+- **Status**: Complete
+- **Files created**: `src/types/session.ts`, `src/types/settings.ts`, `src/state/sessionStore.ts`, `src/state/settingsStore.ts`, `src/state/persistence/db.ts`, `src/state/persistence/serialization.ts`, `src/state/persistence/SessionManager.ts`, `src/audio/export/wavEncoder.ts`, `src/audio/export/renderMix.ts`, `src/audio/export/exportWav.ts`, `src/hooks/useAutoSave.ts`, `src/hooks/useExportWav.ts`, `src/components/app/SessionCard.tsx` + CSS, `src/components/timeline/ExportModal.tsx` + CSS, `src/components/session/SettingsScreen.module.css`
+- **Files modified**: `HomeScreen.tsx` (session list + empty state + delete confirmation), `SettingsScreen.tsx` (full settings UI), `TransportBar.tsx` (+save/export buttons), `TimelineScreen.tsx` (+auto-save + export modal), `Icon.tsx` (+5 icons), `useKeyboardShortcuts.ts` (+Ctrl+S, Ctrl+E), `RingBuffer.ts` (+fromArray static), `setupTests.ts` (fake-indexeddb)
+- **Tests**: 605 passing (59 files, +110 new), 0 lint errors, build 127KB app + 143KB vendor
+- **Key features**: IndexedDB persistence (2 object stores), session serialize/deserialize, auto-save (2s debounce), session list/load/delete, WAV export (OfflineAudioContext + 16-bit PCM), settings (localStorage persist), storage usage display
+- **Key learnings**:
+  - Promise wrappers for IDBRequest/IDBTransaction clean up IndexedDB callback APIs
+  - Store raw audio + snippets as separate blobs — avoids serializing ArrayBuffers in JSON
+  - Session restore order: reset all → recording → cluster (setClustering + assignments) → quantization → timeline
+  - `RingBuffer.fromArray()` needed for reconstruct from stored data
+  - OfflineAudioContext mirrors real-time gain chain for faithful WAV export
+  - Zustand `persist` middleware with `createJSONStorage(() => localStorage)` is clean for settings
+  - `fake-indexeddb` provides full IDB implementation in jsdom — no mocking needed
+- Pattern: Sequential implementation (types → persistence → stores → export → hooks → UI → tests)
+- See: [releases/mvp/milestone-8-session-export.md](../../../releases/mvp/milestone-8-session-export.md)
+
 ## Priorities for Next Session
 
-1. Browser verification of M7 (track controls, zoom/scroll, editing, undo/redo, shortcuts)
-2. Begin Milestone 8: Session Management & WAV Export
-3. Begin Milestone 9: Polish, PWA & Cross-Browser
+1. Browser verification of M8 (session save/load/delete, WAV export, settings, auto-save)
+2. Begin Milestone 9: Polish, PWA & Cross-Browser
+3. Begin Milestone 10: Launch

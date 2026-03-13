@@ -2,7 +2,7 @@
 
 ## Overall Status
 
-**Phase**: Milestone 7 complete, ready for browser verification.
+**Phase**: Milestone 8 complete, ready for browser verification.
 **Target**: 12-week MVP delivery
 **Last Updated**: 2026-03-13
 
@@ -84,16 +84,32 @@
 - 495 tests passing (46 files, +57 new), 0 lint errors, production build succeeds (101KB app)
 - Pattern: Single-session sequential implementation (types → stores → audio → hooks → UI → tests)
 
+### Milestone 8: Session Management & WAV Export (2026-03-13)
+- **Branch**: `milestone-8/session-export` (from `milestone-7/timeline-enhancement`)
+- **Status**: Complete
+- **Files created**: `src/types/session.ts`, `src/types/settings.ts`, `src/state/sessionStore.ts`, `src/state/settingsStore.ts`, `src/state/persistence/db.ts`, `src/state/persistence/serialization.ts`, `src/state/persistence/SessionManager.ts`, `src/audio/export/wavEncoder.ts`, `src/audio/export/renderMix.ts`, `src/audio/export/exportWav.ts`, `src/hooks/useAutoSave.ts`, `src/hooks/useExportWav.ts`, `src/components/app/SessionCard.tsx` + CSS, `src/components/timeline/ExportModal.tsx` + CSS, `src/components/session/SettingsScreen.module.css`
+- **Files modified**: `HomeScreen.tsx` (session list, delete confirmation), `SettingsScreen.tsx` (full settings UI), `TransportBar.tsx` (+save/export buttons), `TimelineScreen.tsx` (+auto-save, export modal), `Icon.tsx` (+5 icons), `useKeyboardShortcuts.ts` (+Ctrl+S, Ctrl+E), `RingBuffer.ts` (+`fromArray` static method), `setupTests.ts` (fake-indexeddb)
+- **Tests**: 605 passing (59 files, +110 new), 0 lint errors, production build succeeds (127KB app + 143KB vendor)
+- **Key features**: IndexedDB persistence (2 object stores), full session serialize/deserialize (all stores + audio blobs), auto-save (debounced 2s), session list/load/delete, WAV export (OfflineAudioContext + 16-bit PCM encoding + download), settings (theme/BPM/grid/sensitivity with localStorage), storage usage display
+- **Key learnings**:
+  - IndexedDB wrapping: Promise-based wrappers for IDBRequest/IDBTransaction clean up callback APIs
+  - Audio blob strategy: Store raw audio + snippets as separate blobs keyed by `{sessionId}:{type}:{subId}` — avoids serializing ArrayBuffers in session JSON
+  - Session restore order matters: reset all → recording → cluster (setClustering + assignments) → quantization → timeline
+  - `RingBuffer.fromArray()` needed for session restore — can't reconstruct from constructor alone
+  - OfflineAudioContext mirrors real-time gain chain exactly for faithful WAV export
+  - Zustand `persist` middleware with `createJSONStorage(() => localStorage)` is clean for settings
+  - `fake-indexeddb` provides full IDB implementation in jsdom tests — much better than mocking
+- Pattern: Sequential implementation (types → persistence → stores → export → hooks → UI → tests)
+
 ---
 
 ## Next Up
 
 | Priority | Item | Reference |
 |----------|------|-----------|
-| 1 | Browser verification of M7 | Track controls, zoom/scroll, editing, undo/redo, keyboard shortcuts |
-| 2 | Milestone 8: Session Management & WAV Export | `releases/mvp/milestone-8-session-export.md` |
-| 3 | Milestone 9: Polish, PWA & Cross-Browser | `releases/mvp/milestone-9-polish-pwa.md` |
-| 4 | Milestone 10: Launch | `releases/mvp/milestone-10-launch.md` |
+| 1 | Browser verification of M8 | Session save/load/delete, WAV export, settings, auto-save |
+| 2 | Milestone 9: Polish, PWA & Cross-Browser | `releases/mvp/milestone-9-polish-pwa.md` |
+| 3 | Milestone 10: Launch | `releases/mvp/milestone-10-launch.md` |
 
 ---
 

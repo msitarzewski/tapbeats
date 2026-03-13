@@ -106,6 +106,32 @@
   max-width: 140px;
 }
 
+.sessionName {
+  display: flex;
+  align-items: center;
+  max-width: 160px;
+}
+
+.sessionNameInput {
+  width: 100%;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  padding: var(--space-1) var(--space-2);
+  outline: none;
+  transition: border-color var(--ease-micro);
+}
+
+.sessionNameInput:focus {
+  border-color: var(--border-default);
+}
+
+.savedBtn {
+  color: var(--status-success);
+}
+
 @media (max-width: 640px) {
   .transport {
     position: fixed;
@@ -122,6 +148,10 @@
   }
 
   .divider {
+    display: none;
+  }
+
+  .sessionName {
     display: none;
   }
 }

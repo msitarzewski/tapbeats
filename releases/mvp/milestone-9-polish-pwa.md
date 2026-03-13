@@ -154,18 +154,54 @@ Polish the end-to-end experience, add PWA support for offline use and installabi
 - Ghost marker fade: when toggling before/after, ghost markers should fade in/out smoothly
 - BPM detection confidence indicator could pulse/glow when confidence is high
 
+### Lessons from M8 (Session Management & WAV Export)
+
+#### Session/Settings Infrastructure
+- **SessionManager** (`src/state/persistence/SessionManager.ts`): Orchestrator for save/load/delete/rename. Auto-save via `startAutoSave()` with debounced 2s saves.
+- **IndexedDB** (`src/state/persistence/db.ts`): Database `tapbeats` v1, two object stores: `sessions` (session JSON) + `audioBlobs` (binary audio data). Promise wrappers for IDB operations.
+- **settingsStore** (`src/state/settingsStore.ts`): Zustand + `persist` middleware with localStorage. Theme, BPM, grid, sensitivity.
+- **sessionStore** (`src/state/sessionStore.ts`): Session list, current session ID/name, save status, storage info.
+
+#### UI Components to Polish (M8)
+- **SessionCard** (`src/components/app/SessionCard.tsx`): Session list item — name, date, BPM, duration, delete. Has `role="button"` and `aria-label`. Polish: add swipe-to-delete on mobile, long-press confirmation.
+- **ExportModal** (`src/components/timeline/ExportModal.tsx`): Progress bar, success icon, error/retry states. Polish: add export celebration animation (confetti per ui-design.md).
+- **HomeScreen** (`src/components/app/HomeScreen.tsx`): Session list + empty state (folder icon). Polish: session card entrance animation (stagger), empty state illustration.
+- **SettingsScreen** (`src/components/session/SettingsScreen.tsx`): Pill-based selectors, storage bar. Polish: transition animations, audio input device dropdown (currently unimplemented — `audioInputDeviceId` is in state but no UI for enumeration yet).
+- **TransportBar** (+save/export buttons): Polish: save status indicator (saved/saving/error), flash on successful save.
+
+#### Service Worker & PWA Notes (M8)
+- IndexedDB data must be accessible offline — service worker should NOT cache/intercept IndexedDB operations (they're already local).
+- `public/samples/` WAV files MUST be pre-cached by service worker for offline playback.
+- Settings in localStorage survive cache clear — but IndexedDB may be evicted under storage pressure. Consider `navigator.storage.persist()` for opt-in persistent storage.
+- `estimateStorageUsage()` already exists in `db.ts` — wire into settings screen for real-time quota display.
+
+#### Accessibility Audit Points (M8)
+- SessionCard has `role="button"`, `tabIndex={0}`, keyboard Enter/Space handlers — verify screen reader
+- ExportModal uses Modal component (has `role="dialog"`, `aria-modal`) — verify focus trap
+- SettingsScreen pill buttons: need `role="radiogroup"` with `role="radio"` and `aria-checked` for proper semantics
+- Storage bar: add `aria-label` with current usage text
+- Delete confirmation modals: verify focus returns to trigger element on close
+
+#### Build Size (M8)
+- 127KB app + 143KB vendor = 270KB total (gzipped ~94KB). Grew 26KB from M7's 101KB due to IndexedDB + serialization + WAV encoding. Still under 200KB gzipped budget.
+- Test count: 605 (59 files). Target ~650+ by launch.
+
+#### TypeScript/Lint (M8)
+- No new lint rule issues discovered in M8
+- Pattern: `void manager.doSomething().then(...)` for fire-and-forget async in event handlers (satisfies `no-floating-promises`)
+
 ### Lessons from M7 (Timeline Enhancement)
 
 #### UI Components to Polish
 - **TrackHeaders** (`src/components/timeline/TrackHeaders.tsx`): DOM-based with mute (volume-2/volume-x icon) and solo ("S" text) buttons. Responsive at <=640px (48px icon-only, no name label, solo hidden). Verify touch targets meet Apple HIG 44px minimum.
 - **TrackControls** (`src/components/timeline/TrackControls.tsx`): Per-track + master volume sliders in collapsible panel. Reuses shared Slider component.
-- **TransportBar** (`src/components/timeline/TransportBar.tsx`): Now includes undo/redo buttons (disabled state), master volume slider, dividers. Mobile: fixed bottom, volume hidden.
+- **TransportBar** (`src/components/timeline/TransportBar.tsx`): Now includes undo/redo buttons (disabled state), master volume slider, save/export buttons, dividers. Mobile: fixed bottom, volume hidden.
 - **TimelineCanvas**: Has `touch-action: none` for gesture control. Verify pinch-to-zoom doesn't conflict with browser zoom on iOS Safari.
 
 #### Accessibility Audit Points (M7)
 - Track headers use real `<button>` elements with `aria-label` and `aria-pressed` — verify screen reader announces mute/solo state
 - TrackHeaders `role="list"` with `role="listitem"` — verify navigation
-- Keyboard shortcuts (`useKeyboardShortcuts.ts`): Space, L, M, S, 1-9, Ctrl+Z/Y, +/- — document in help/tooltip overlay
+- Keyboard shortcuts (`useKeyboardShortcuts.ts`): Space, L, M, S, 1-9, Ctrl+Z/Y, +/-, Ctrl+S, Ctrl+E — document in help/tooltip overlay
 - Canvas hit editing has no keyboard equivalent yet — consider Tab to cycle hits, Enter to select, arrow keys to nudge
 - Volume sliders reuse shared Slider (range input) — verify ARIA labels present
 
@@ -180,7 +216,7 @@ Polish the end-to-end experience, add PWA support for offline use and installabi
 - Canvas viewport culling implemented — only draws hits within visible range. Should maintain 60fps with 200+ hits at any zoom level.
 - PlaybackEngine track gain nodes persist during playback — no allocation/deallocation jank
 - structuredClone for undo: ~0.1ms for 500 hits — negligible
-- Build size: 101KB app (grew 15KB from M6's 86KB). Monitor for M8 additions.
+- Build size through M8: 127KB app (grew 26KB from M7's 101KB). Monitor for M9 additions.
 
 #### TypeScript/Lint (M7 additions)
 - `no-non-null-assertion`: Use `if (x === undefined) return` guard after `.pop()` instead of `!`

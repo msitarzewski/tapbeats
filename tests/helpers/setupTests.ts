@@ -1,4 +1,7 @@
+import 'fake-indexeddb/auto';
 import { afterEach, vi } from 'vitest';
+
+import { resetDB } from '@/state/persistence/db';
 
 // ---------------------------------------------------------------------------
 // Web Audio API mocks for jsdom (which has no Web Audio support)
@@ -167,6 +170,80 @@ globalThis.fetch = vi.fn(() =>
 // Cleanup between tests
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// localStorage mock (jsdom doesn't support it for opaque origins)
+// ---------------------------------------------------------------------------
+
+const localStorageData = new Map<string, string>();
+const localStorageMock: Storage = {
+  get length() {
+    return localStorageData.size;
+  },
+  key(index: number) {
+    return [...localStorageData.keys()][index] ?? null;
+  },
+  getItem(key: string) {
+    return localStorageData.get(key) ?? null;
+  },
+  setItem(key: string, value: string) {
+    localStorageData.set(key, value);
+  },
+  removeItem(key: string) {
+    localStorageData.delete(key);
+  },
+  clear() {
+    localStorageData.clear();
+  },
+};
+
+Object.defineProperty(globalThis, 'localStorage', {
+  value: localStorageMock,
+  writable: true,
+  configurable: true,
+});
+
+// ---------------------------------------------------------------------------
+// OfflineAudioContext mock
+// ---------------------------------------------------------------------------
+
+class MockOfflineAudioContext {
+  readonly sampleRate: number;
+  readonly length: number;
+  readonly numberOfChannels: number;
+
+  constructor(channels: number, length: number, sampleRate: number) {
+    this.numberOfChannels = channels;
+    this.length = length;
+    this.sampleRate = sampleRate;
+  }
+
+  createGain = vi.fn(() => new MockGainNode());
+  createBufferSource = vi.fn(() => new MockBufferSourceNode());
+
+  startRendering = vi.fn(() => {
+    return Promise.resolve(new MockAudioBuffer());
+  });
+}
+
+globalThis.OfflineAudioContext = MockOfflineAudioContext as unknown as typeof OfflineAudioContext;
+
+// ---------------------------------------------------------------------------
+// URL.createObjectURL / revokeObjectURL mocks
+// ---------------------------------------------------------------------------
+
+if (typeof URL.createObjectURL !== 'function') {
+  URL.createObjectURL = vi.fn(() => 'blob:mock-url');
+}
+if (typeof URL.revokeObjectURL !== 'function') {
+  URL.revokeObjectURL = vi.fn();
+}
+
+// ---------------------------------------------------------------------------
+// Cleanup between tests
+// ---------------------------------------------------------------------------
+
 afterEach(() => {
   vi.restoreAllMocks();
+  resetDB();
+  localStorageData.clear();
 });

@@ -98,7 +98,7 @@
 
 Rationale: Full control over AudioWorklet-compatible code (no DOM/fetch dependencies), deterministic behavior, smaller bundle, deeper understanding for debugging.
 
-**Allowed external deps**: React, Zustand, react-router-dom, Vite (build). Testing tools are devDependencies only.
+**Allowed external deps**: React, Zustand (+ zustand/middleware persist), react-router-dom, Vite (build). Testing tools are devDependencies only (including `fake-indexeddb` for IndexedDB unit tests).
 
 ## Project Structure
 
@@ -111,7 +111,8 @@ src/
     clustering/        # SoundClusterer (k-means), distance metrics, silhouette
     quantization/      # QuantizationEngine, BPMDetector, grid/swing helpers
     playback/          # PlaybackEngine (lookahead scheduler), SampleBank
-  state/               # Zustand stores (5 slices) + middleware/ (persist, devtools)
+    export/            # WAV export: renderMix (OfflineAudioContext), wavEncoder (16-bit PCM RIFF), exportWav (download)
+  state/               # Zustand stores (7 slices) + persistence/ (IndexedDB, serialization, SessionManager)
   hooks/               # React hooks bridging audio modules and component lifecycle
   types/               # Shared TS types + global.d.ts (AudioWorklet ambient types, __DEV__)
   utils/               # Pure utilities: math, time, arrayBuffer, platform detection

@@ -87,8 +87,40 @@ Final QA, deployment setup, launch preparation, and public release. Ship TapBeat
 
 ## Implementation Notes from Previous Milestones
 
+### Infrastructure from M8 (Session Management & WAV Export)
+
+#### Session & Storage Infrastructure
+- **SessionManager** (`src/state/persistence/SessionManager.ts`): Save/load/delete/rename sessions. Auto-save with 2s debounce via store subscriptions.
+- **IndexedDB** (`src/state/persistence/db.ts`): Database `tapbeats` v1, two object stores: `sessions` + `audioBlobs`. Promise wrappers for IDB operations.
+- **settingsStore** (`src/state/settingsStore.ts`): Zustand + `persist` middleware (localStorage). Theme, BPM, grid, sensitivity.
+- **sessionStore**: Session list, current session, save status, storage quota.
+- **WAV export**: OfflineAudioContext → wavEncoder (16-bit PCM RIFF) → browser download. Mirrors real-time gain chain.
+
+#### Real-World Testing Notes (M8)
+- Test save/load roundtrip: verify all store state restored correctly (recording, cluster, quantization, timeline)
+- Test delete session: verify IndexedDB cleanup (both sessions + audioBlobs stores)
+- Test auto-save: verify debounced saves don't overwhelm IndexedDB
+- Test WAV export: verify stereo output, correct BPM timing, muted tracks excluded
+- Test storage quota handling: verify graceful behavior near quota limits
+- Test settings persistence: verify localStorage survives page reload
+- Test clear all: verify all sessions + blobs deleted, UI reset
+
+#### Build Size
+- Through M8: 127KB app + 143KB vendor = 270KB (gzipped ~94KB). Under 200KB gzipped budget.
+- Test count: 605 (59 files). Target ~650+ by launch.
+
+### Infrastructure from M7 (Timeline Enhancement)
+
+#### Real-World Testing Notes (M7)
+- Test mute/solo behavior with multiple tracks — verify solo overrides mute correctly
+- Test zoom at extreme levels (50 pps to 2000 pps) — verify grid lines and hit markers scale correctly
+- Test seamless loop with various BPMs and track configurations — verify <5ms gap
+- Test undo/redo with many operations (push to 50 limit) — verify memory usage stays reasonable
+- Test keyboard shortcuts don't fire in input fields (BPM, grid resolution pickers)
+- Test responsive layout at 375px (iPhone SE) — track headers should collapse to 48px icons
+
 ### Infrastructure from M2
-- **88 tests established**: Strong test baseline. Each milestone adds tests; maintain green suite.
+- **88 tests established**: Strong test baseline. Each milestone adds tests; maintain green suite (605 as of M8).
 - **Multi-agent execution pattern**: M2 used 4 parallel agents successfully. Orchestrator must fix lint/integration issues across agent outputs — budget time for this.
 - **Permission/async flow lesson**: Always show informational UI before triggering browser APIs (getUserMedia, etc.). Don't auto-trigger on component mount.
 
@@ -104,6 +136,8 @@ Final QA, deployment setup, launch preparation, and public release. Ship TapBeat
 - COOP/COEP headers in `vite.config.ts` are dev-server only — must configure on hosting platform too
 - Vite build target is ES2022 — verify hosting platform serves correct MIME types
 - Vendor chunk splitting already configured (React/ReactDOM/Zustand separate from app code)
+- IndexedDB data is local — service worker should NOT intercept IDB operations
+- `public/samples/` WAV files must be cached by service worker for offline playback
 
 ### Open Source Readiness Baseline
 - All samples must be CC0/public domain (Milestone 5)
@@ -117,78 +151,30 @@ Final QA, deployment setup, launch preparation, and public release. Ship TapBeat
 - No CHANGELOG.md yet — create during M10
 - No GitHub Issues templates yet — create during M10
 
-### Lessons from M4 (Clustering)
-
-- **Build size tracking**: M4 added ~15KB to app bundle (48KB → 63KB). Monitor growth through remaining milestones.
-- **Test count**: 314 tests as of M4. Target ~500+ by launch with good coverage across all milestones.
-- **Real-world testing needed**: Clustering accuracy with actual taps on varied surfaces (wood, metal, skin) — synthetic test data doesn't capture real-world variance.
-
-### Lessons from M6 (Quantization)
-
-#### Quantization Infrastructure Available
-- `quantizationStore` holds: bpm, bpmManualOverride, bpmResult, gridResolution, strength, swingAmount, quantizedHits, playbackMode
-- `PlaybackEngine.playScheduled(instrumentId, when, velocity)` handles timed sample playback with GainNode velocity control
-- `useQuantizedPlayback` implements lookahead scheduling (25ms setInterval, 100ms lookahead window) with before/after comparison
-- `useTimelineRenderer` renders canvas at 60fps using `store.subscribe()` pattern (not React selectors)
-- Pure algorithm functions in `src/audio/quantization/`: `detectBpm()`, `quantizeHits()`, `gridUtils` — no store coupling
-
-#### Cross-Store Pattern Established
-- `quantizationStore.recomputeQuantization()` reads from `useRecordingStore.getState()._onsets` + `useClusterStore.getState()` (clusters, assignments, instrumentAssignments)
-- Original-to-remapped cluster ID mapping: build map via `assignments[cluster.hitIndices[0]]` to translate between clustering output IDs and contiguous ClusterData.id
-
-#### TypeScript/Lint (additional to existing)
+### Key TypeScript/Lint Rules (cumulative)
 - `Array<T>` syntax forbidden by eslint `array-type` rule — must use `T[]`
-- Import ordering: external → `@/` imports (value+type mixed) → relative imports. CSS modules come before type-only `react` imports in relative group
+- Import ordering: external → `@/` imports (value+type mixed) → relative imports. CSS modules before type-only imports.
 - `Float64Array` indexed access returns `number | undefined` with `noUncheckedIndexedAccess` — use `?? 0`
 - CSS module class concatenation: `[styles.a, condition ? styles.b : ''].filter(Boolean).join(' ')` — never template literals
-
-#### Build Size Tracking
-- M6 added ~12KB to app bundle (74KB → 86KB).
-- M7 added ~15KB to app bundle (86KB → 101KB). Total through M7: 101KB app + 143KB vendor = 244KB (gzipped ~80KB). Still well under 200KB gzipped budget.
-- Test count: 495 as of M7. Already near 500 target; expect 550+ by launch.
-
-### Lessons from M7 (Timeline Enhancement)
-
-#### Infrastructure Available
-- `timelineStore` manages track controls (mute/solo/volume), zoom/scroll, undo/redo (50-depth snapshots)
-- `quantizationStore` has write-back actions: `setQuantizedHits`, `addHit`, `removeHit`, `updateHitTime`
-- PlaybackEngine per-track gain chain: `source → velocityGain → trackGain → masterGain → destination`
-- DOM-based TrackHeaders (accessible mute/solo buttons) alongside canvas timeline
-- Keyboard shortcuts: Space, L, M, S, 1-9, Ctrl+Z/Y, +/-
-- Hit editing: drag-to-move (grid snap), double-click add, right-click delete
-
-#### Real-World Testing Notes (M7)
-- Test mute/solo behavior with multiple tracks — verify solo overrides mute correctly
-- Test zoom at extreme levels (50 pps to 2000 pps) — verify grid lines and hit markers scale correctly
-- Test seamless loop with various BPMs and track configurations — verify <5ms gap
-- Test undo/redo with many operations (push to 50 limit) — verify memory usage stays reasonable
-- Test keyboard shortcuts don't fire in input fields (BPM, grid resolution pickers)
-- Test responsive layout at 375px (iPhone SE) — track headers should collapse to 48px icons
-
-#### TypeScript/Lint (M7 additions)
 - `no-non-null-assertion`: Use `if (x === undefined) return` guard after `.pop()` instead of `!`
 - `no-confusing-void-expression`: Arrow functions calling void methods need `{ }` braces — auto-fixable
+- `void promise.then(...)` pattern for fire-and-forget async in event handlers (satisfies `no-floating-promises`)
 
-### Lessons from M3 (Onset Detection)
+### Key React Patterns (cumulative)
+- **Never pass `ref.current` to hooks as a reactive dependency.** Wire listeners where instance is created.
+- **Never use `setTimeout` chains inside `useEffect`.** Process synchronously or use Web Workers.
+- **Always handle all status values in conditional renders.** Missing handlers cause fall-through bugs.
+- **`store.subscribe()` for high-frequency canvas rendering** outside React's render cycle.
 
-#### React Patterns
-- **Never pass `ref.current` to hooks as a reactive dependency.** React refs don't trigger re-renders, so hooks receiving `ref.current` always get the initial value (usually `null`). Wire event listeners directly where the instance is created (e.g., in `startRecording()` alongside other listeners).
-- **Never use `setTimeout` chains inside `useEffect`.** React's effect cleanup runs between setTimeout calls (especially in StrictMode), killing the chain. For post-processing work triggered by state changes, process synchronously within the effect body wrapped in try/catch. If work is too heavy (>3s), use a Web Worker instead.
-- **Always handle all status values in conditional renders.** If a component renders different views based on status (idle, recording, processing, complete), ensure every status has a handler. Missing handlers cause the component to fall through to an unexpected default view.
+### Key AudioWorklet Patterns (cumulative)
+- Worklet files in `public/` may be cached — hard reload needed after changes.
+- Dual onset gating: spectral flux > 0.5 AND RMS energy > 0.01.
+- No arrow functions, template literals, console.log in worklet scope.
+- Pre-allocate all buffers in constructor. Never allocate in `process()`.
 
-#### AudioWorklet Patterns
-- **Worklet files in `public/` may be cached by the browser.** After modifying a worklet file, a hard reload (Cmd+Shift+R) or cache-busting query param is needed. Vite's HMR does not apply to AudioWorklet modules.
-- **Spectral flux alone is insufficient for onset gating.** Ambient microphone noise produces spectral flux values of 0.3-0.7 regularly. Use dual gating: spectral flux threshold (>0.5) AND RMS energy gate (>0.01). The energy gate rejects quiet noise regardless of spectral variation.
-- **AudioWorklet JS rules**: `var` declarations, old-style `function` syntax, NO arrow functions, NO template literals, NO `console.log` (not available in worklet scope). Add `// @ts-nocheck` and `/* eslint-disable no-undef */` at top.
-- **Pre-allocate all buffers in worklet constructor.** Never allocate in `process()` — it runs on the audio thread and allocations cause glitches. Only exception: re-allocating snippet buffer after Transferable transfer.
-
-#### DSP & TypeScript
-- **Use `?? 0` for typed array access** to satisfy `no-non-null-assertion` lint rule. E.g., `arr[i] ?? 0` instead of `arr[i]!`.
-- **Use dot notation for object property access** (`f.rms`) not bracket notation (`f["rms"]`) to satisfy `dot-notation` lint rule.
-- **Synchronous feature extraction is fast enough**: ~5ms per hit x 500 max = ~2.5s worst case. Acceptable since processing overlay is shown.
-
-#### Testing & Debugging
-- **Chrome DevTools MCP is highly effective** for debugging AudioWorklet + React integration issues at runtime. Use it to inspect console logs, take snapshots, and interact with the UI programmatically.
-- **Canvas in jsdom**: `HTMLCanvasElement.getContext()` returns `null` — mock it in tests with `vi.spyOn(HTMLCanvasElement.prototype, 'getContext')`.
-- **ResizeObserver in jsdom**: Not provided — mock globally in test setup.
-- **Use `store.subscribe()` (not selectors) for high-frequency canvas rendering** that runs outside React's render cycle (e.g., ProtoTimeline, LiveWaveform).
+### Testing Infrastructure
+- `fake-indexeddb` for full IndexedDB implementation in jsdom tests
+- `createMockAudioContext()` and `createMockMediaStream()` in `tests/helpers/audioMocks.ts`
+- Canvas mock: `vi.spyOn(HTMLCanvasElement.prototype, 'getContext')`
+- ResizeObserver mock in `setupTests.ts`
+- Chrome DevTools MCP for runtime debugging

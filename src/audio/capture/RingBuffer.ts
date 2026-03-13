@@ -60,4 +60,12 @@ export class RingBuffer {
     this._writeIndex = 0;
     this._samplesWritten = 0;
   }
+
+  /** Reconstruct a RingBuffer from a linear Float32Array snapshot */
+  static fromArray(data: Float32Array, sampleRate: number): RingBuffer {
+    const durationSeconds = data.length / sampleRate;
+    const rb = new RingBuffer(durationSeconds, sampleRate);
+    rb.write(data);
+    return rb;
+  }
 }

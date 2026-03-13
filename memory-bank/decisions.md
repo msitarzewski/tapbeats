@@ -20,6 +20,9 @@
 16. [Synchronous feature processing](#2026-03-12-synchronous-feature-processing-not-settimeout-batches)
 17. [RMS energy gate for onset detection](#2026-03-12-rms-energy-gate-for-onset-detection)
 18. [Complete status navigates home](#2026-03-12-complete-status-navigates-home)
+19. [Separate audio blobs from session JSON in IndexedDB](#2026-03-13-separate-audio-blobs-from-session-json-in-indexeddb)
+20. [Zustand persist middleware for settings](#2026-03-13-zustand-persist-middleware-for-settings-not-indexeddb)
+21. [OfflineAudioContext for WAV export](#2026-03-13-offlineaudiocontext-for-wav-export-mirror-real-time-gain-chain)
 
 ---
 
@@ -156,3 +159,27 @@
 **Alternatives**: Reset status to 'idle' (rejected: loses the state transition, harder to debug); Show a completion screen in RecordingScreen (rejected: M3 has no results to show yet, premature); Navigate to '/review' (rejected: /review screen not implemented until M4).
 **Consequences**: (+) Stop button works as expected, user returns to home after recording. (-) M4+ will need to change this to navigate to `/review` instead of `/`.
 **References**: `src/components/recording/RecordingScreen.tsx:27-31`
+
+### 2026-03-13: Separate audio blobs from session JSON in IndexedDB
+**Status**: Approved
+**Context**: Sessions contain large binary audio data (raw recording as Float32Array, per-hit snippet buffers). Storing these inline in the session JSON object would make serialization slow and waste memory during listing operations.
+**Decision**: Two IndexedDB object stores: `sessions` for JSON-serializable session data, `audioBlobs` for binary data keyed by `{sessionId}:{type}:{subId}`. Session listing reads only from `sessions` store (with `by-updated` index for sorted listing). Audio blobs loaded on demand during session restore.
+**Alternatives**: Single object store with binary data inline (rejected: slow listing, high memory for just displaying session list); File System Access API for blobs (rejected: limited browser support, requires user interaction).
+**Consequences**: (+) Fast session list loading, efficient binary storage, clean separation. (-) Two-phase save/load, must delete blobs when deleting session.
+**References**: `src/state/persistence/db.ts`, `src/state/persistence/serialization.ts`
+
+### 2026-03-13: Zustand persist middleware for settings (not IndexedDB)
+**Status**: Approved
+**Context**: User settings (theme, default BPM, grid resolution, sensitivity) are small, simple key-value pairs that should persist across sessions. IndexedDB is available but heavyweight for simple settings.
+**Decision**: Use Zustand's built-in `persist` middleware with `createJSONStorage(() => localStorage)` for the settings store. Settings are separate from session data.
+**Alternatives**: IndexedDB for settings (rejected: overkill for <1KB of JSON, async API adds complexity); Manual localStorage reads (rejected: Zustand persist middleware handles hydration and serialization automatically).
+**Consequences**: (+) Automatic persistence, synchronous reads on app start, simple API. (-) 5MB localStorage limit (irrelevant for settings data).
+**References**: `src/state/settingsStore.ts`
+
+### 2026-03-13: OfflineAudioContext for WAV export (mirror real-time gain chain)
+**Status**: Approved
+**Context**: WAV export needs to render the full beat as a stereo audio file. The real-time playback uses a per-track gain chain (`source → velocityGain → trackGain → masterGain → destination`) with mute/solo logic.
+**Decision**: Use `OfflineAudioContext` to render the mix offline, mirroring the exact same gain chain as real-time playback. This ensures exported audio matches what the user hears. Muted tracks are excluded, solo logic applies, velocity and volume are respected.
+**Alternatives**: Manual sample mixing in Float32Array (rejected: would need to reimplement gain/mixing math, error-prone, no resampling support); Record real-time output via MediaRecorder (rejected: real-time speed, can't export faster than playback).
+**Consequences**: (+) Faithful reproduction of playback, reuses browser's audio mixing, handles sample rate conversion. (-) Requires creating a parallel audio graph, can't show real-time preview during export.
+**References**: `src/audio/export/renderMix.ts`, `src/audio/export/wavEncoder.ts`

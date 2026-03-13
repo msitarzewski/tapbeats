@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 
 import { PlaybackEngine } from '@/audio/playback/PlaybackEngine';
+import { useAutoSave } from '@/hooks/useAutoSave';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useQuantizedPlayback } from '@/hooks/useQuantizedPlayback';
 import { useClusterStore } from '@/state/clusterStore';
 import { useQuantizationStore } from '@/state/quantizationStore';
+import { useSessionStore } from '@/state/sessionStore';
 import { useTimelineStore } from '@/state/timelineStore';
 
+import { ExportModal } from './ExportModal';
 import { QuantizationControls } from './QuantizationControls';
 import { TimelineCanvas } from './TimelineCanvas';
 import { TrackControls } from './TrackControls';
@@ -26,8 +29,24 @@ export function TimelineScreen() {
   const initTracks = useTimelineStore((s) => s.initTracks);
 
   const [showVolumePanel] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
-  useKeyboardShortcuts({ isPlaying, isLooping, play, pause, stop, toggleLoop });
+  const sessionManager = useAutoSave();
+
+  useKeyboardShortcuts({
+    isPlaying,
+    isLooping,
+    play,
+    pause,
+    stop,
+    toggleLoop,
+    onSave: () => {
+      void sessionManager.saveSession();
+    },
+    onExport: () => {
+      setShowExportModal(true);
+    },
+  });
 
   useEffect(() => {
     const engine = PlaybackEngine.getInstance();
@@ -64,6 +83,14 @@ export function TimelineScreen() {
     });
   }, [initTracks]);
 
+  const handleSave = () => {
+    void sessionManager.saveSession();
+  };
+
+  const handleSessionNameChange = (name: string) => {
+    useSessionStore.getState().setCurrentSessionName(name);
+  };
+
   return (
     <div
       style={{
@@ -93,6 +120,17 @@ export function TimelineScreen() {
         onRedo={redo}
         canUndo={undoStack.length > 0}
         canRedo={redoStack.length > 0}
+        onSave={handleSave}
+        onExport={() => {
+          setShowExportModal(true);
+        }}
+        onSessionNameChange={handleSessionNameChange}
+      />
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => {
+          setShowExportModal(false);
+        }}
       />
     </div>
   );
