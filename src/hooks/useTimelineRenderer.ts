@@ -46,6 +46,16 @@ interface TimelineRendererState {
   scrollOffsetSeconds: number;
 }
 
+/** Resolve a CSS variable string (e.g. "var(--cluster-0)") to a computed color value.
+ *  Non-variable strings are returned unchanged. */
+function resolveCssColor(raw: string, el: Element): string {
+  const m = /^var\(([^)]+)\)$/.exec(raw);
+  if (m === null) return raw;
+  const varName = m[1];
+  if (varName === undefined) return raw;
+  return getComputedStyle(el).getPropertyValue(varName).trim() || raw;
+}
+
 export function useTimelineRenderer(
   canvasRef: RefObject<HTMLCanvasElement | null>,
   cursorTimeRef: RefObject<number>,
@@ -155,6 +165,12 @@ export function useTimelineRenderer(
       });
 
       if (tracks.length === 0 || quantizedHits.length === 0) return;
+
+      // Resolve CSS variable colors to computed values for canvas rendering
+      const resolvedColors = new Map<number, string>();
+      for (const t of tracks) {
+        resolvedColors.set(t.id, resolveCssColor(t.color, canvas));
+      }
 
       // Zoom/scroll time-to-pixel mapping
       const timeToX = (t: number): number => {
@@ -312,7 +328,7 @@ export function useTimelineRenderer(
             const track = tracks[trackIdx];
             if (track !== undefined) {
               ctx.globalAlpha = GHOST_OPACITY * (isTrackActive ? 1 : MUTED_TRACK_OPACITY);
-              ctx.fillStyle = track.color;
+              ctx.fillStyle = resolvedColors.get(track.id) ?? track.color;
               ctx.beginPath();
               ctx.arc(ghostX, trackY, HIT_RADIUS * 0.7, 0, Math.PI * 2);
               ctx.fill();
@@ -325,7 +341,7 @@ export function useTimelineRenderer(
         const track = tracks[trackIdx];
         if (track !== undefined) {
           const radius = HIT_RADIUS * (0.5 + hit.velocity * 0.5);
-          ctx.fillStyle = track.color;
+          ctx.fillStyle = resolvedColors.get(track.id) ?? track.color;
           ctx.beginPath();
           ctx.arc(x, trackY, radius, 0, Math.PI * 2);
           ctx.fill();
@@ -334,7 +350,7 @@ export function useTimelineRenderer(
           if (drag !== null && drag.hitIndex === hitIdx) {
             const origX = timeToX(drag.startTime);
             ctx.globalAlpha = 0.3;
-            ctx.fillStyle = track.color;
+            ctx.fillStyle = resolvedColors.get(track.id) ?? track.color;
             ctx.beginPath();
             ctx.arc(origX, trackY, radius, 0, Math.PI * 2);
             ctx.fill();
