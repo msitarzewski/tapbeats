@@ -83,7 +83,7 @@ export class PlaybackEngine {
         const url = `/samples/${instrument.category}/${instrument.id}.${format}`;
         const response = await fetch(url);
         if (!response.ok) {
-          console.warn(`Failed to load sample: ${url}`);
+          if (__DEV__) console.warn(`Failed to load sample: ${url}`);
           return;
         }
         const arrayBuffer = await response.arrayBuffer();
@@ -92,7 +92,7 @@ export class PlaybackEngine {
         const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
         this.buffers.set(instrument.id, audioBuffer);
       } catch (e) {
-        console.warn(`Failed to decode sample ${instrument.id}:`, e);
+        if (__DEV__) console.warn(`Failed to decode sample ${instrument.id}:`, e);
       }
     });
 

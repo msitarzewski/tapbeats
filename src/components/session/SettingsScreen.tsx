@@ -197,7 +197,7 @@ export function SettingsScreen() {
       </div>
 
       {/* About Section */}
-      <div className={styles.version}>TapBeats v0.9.0</div>
+      <div className={styles.version}>TapBeats v1.0.0</div>
 
       {/* Clear confirmation modal */}
       <Modal

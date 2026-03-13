@@ -88,7 +88,7 @@ Touch events in useTimelineEditing:
    - Phase 2: Documentation — CODE_OF_CONDUCT, CHANGELOG, ATTRIBUTION, LICENSE (MIT), GitHub Issue templates, README polish
    - Phase 3: Launch content — Product Hunt, Show HN, Reddit, Twitter/X, Dev.to drafts (already drafted)
    - Phase 4: QA via Chrome DevTools MCP — full E2E flow verification on deployed build
-2. **Key decisions from planning**: Vercel chosen (GitHub Pages disqualified — no custom header support for COOP/COEP). CSP needs `font-src 'self'` + `manifest-src 'self'`. SW file needs `Cache-Control: no-cache`.
+2. **Key decisions from planning**: Self-hosted at `tapbeats.zerologic.com` (user's web server). CSP needs `font-src 'self'` + `manifest-src 'self'`. SW file needs `Cache-Control: no-cache`. nginx/Apache config templates in M10 spec.
 3. **Dependency audit done**: 6 moderate dev-only vulns (esbuild chain), all licenses permissive, no hardcoded secrets, 2 console statement files to review
 
 ---

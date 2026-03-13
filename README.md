@@ -1,12 +1,9 @@
 # TapBeats
 
-**Tap anything. Make music.**
+[![CI](https://github.com/msitarzewski/tapbeats/actions/workflows/ci.yml/badge.svg)](https://github.com/msitarzewski/tapbeats/actions/workflows/ci.yml)
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
-<!-- Badges (uncomment as applicable)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/tapbeats/tapbeats/ci.yml?branch=main)](https://github.com/tapbeats/tapbeats/actions)
-[![License](https://img.shields.io/badge/license-TBD-blue.svg)](LICENSE)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
--->
+**Tap anything. Make music.**
 
 TapBeats transforms the most instinctive form of music-making -- tapping on
 surfaces -- into polished, looping drum beats. Record yourself tapping on a
@@ -59,18 +56,22 @@ without interruption.
 - Responsive design from 320px to 2560px
 - WCAG 2.1 AA accessibility compliance
 
+## Screenshots
+
+*Screenshots coming soon.*
+
 ## Tech Stack
 
 | Layer | Technology | Purpose |
 |-------|------------|---------|
-| Language | TypeScript 5.4+ | Type safety across the entire codebase |
-| Framework | React 18+ | UI components with concurrent rendering |
-| Build | Vite 5+ | Fast HMR, native ESM, AudioWorklet bundling |
-| State | Zustand 4+ | Lightweight state management with persistence middleware |
+| Language | TypeScript 5.7 | Type safety across the entire codebase |
+| Framework | React 18.3 | UI components with concurrent rendering |
+| Build | Vite 6 | Fast HMR, native ESM, AudioWorklet bundling |
+| State | Zustand 5 | Lightweight state management with persistence middleware |
 | Audio | Web Audio API + AudioWorklet | Low-latency, real-time audio capture and processing |
 | Storage | IndexedDB via `idb` 8+ | Client-side persistence for sessions and audio buffers |
 | Timeline | HTML5 Canvas 2D | 60fps rendering for the beat timeline |
-| Testing | Vitest + Playwright | Unit, integration, and cross-browser E2E tests |
+| Testing | Vitest 2.1 + Playwright 1.49 | Unit, integration, and cross-browser E2E tests |
 | Styling | CSS Modules | Scoped styles with design token system |
 | CI/CD | GitHub Actions | Automated testing and deployment |
 
@@ -86,7 +87,7 @@ without interruption.
 ### Install and Run
 
 ```bash
-git clone https://github.com/tapbeats/tapbeats.git
+git clone https://github.com/msitarzewski/tapbeats.git
 cd tapbeats
 npm install
 npm run dev
@@ -161,7 +162,7 @@ an issue or start a discussion.
 
 ## License
 
-TBD. TapBeats will be released under an open source license. Details to follow.
+This project is licensed under the GNU Affero General Public License v3.0 — see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 

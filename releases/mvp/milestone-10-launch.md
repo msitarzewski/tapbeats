@@ -16,79 +16,80 @@ Final QA, deployment setup, launch preparation, and public release. Ship TapBeat
 ### Phase 1: Infrastructure & Config (parallel agents)
 
 #### Agent 1: DevOps — Deployment Config
-Create `vercel.json` with corrected headers:
-```json
-{
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "headers": [
-    {
-      "source": "/sw.js",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-cache" }
-      ]
-    },
-    {
-      "source": "/assets/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
-    },
-    {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
-        { "key": "Cross-Origin-Embedder-Policy", "value": "require-corp" },
-        {
-          "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; manifest-src 'self'; worker-src 'self'; connect-src 'self'"
-        }
-      ]
+
+**Hosting**: Self-hosted at `tapbeats.zerologic.com` on user's web server.
+**Deployment**: `npm run build` → copy `dist/` contents to web server document root.
+
+**Required web server configuration** (nginx example — adapt for Apache/Caddy):
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name tapbeats.zerologic.com;
+
+    root /path/to/tapbeats/dist;
+    index index.html;
+
+    # COOP/COEP — CRITICAL for SharedArrayBuffer (AudioWorklet)
+    add_header Cross-Origin-Opener-Policy "same-origin" always;
+    add_header Cross-Origin-Embedder-Policy "require-corp" always;
+
+    # CSP
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; manifest-src 'self'; worker-src 'self'; connect-src 'self'" always;
+
+    # Service Worker — must NOT be cached (browser needs to check for updates)
+    location = /sw.js {
+        add_header Cache-Control "no-cache" always;
+        add_header Cross-Origin-Opener-Policy "same-origin" always;
+        add_header Cross-Origin-Embedder-Policy "require-corp" always;
     }
-  ],
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
+
+    # Hashed assets — cache forever (Vite content-hashed filenames)
+    location /assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+        add_header Cross-Origin-Opener-Policy "same-origin" always;
+        add_header Cross-Origin-Embedder-Policy "require-corp" always;
+    }
+
+    # SPA fallback — serve index.html for all routes
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
 }
 ```
 
-**Key corrections from original draft**:
-- Added `font-src 'self'` and `manifest-src 'self'` to CSP (required for self-hosted fonts + PWA manifest)
-- Added `/sw.js` with `Cache-Control: no-cache` (critical — browser must check for SW updates)
-- Added `/assets/(.*)` with `immutable` cache (Vite hashed filenames)
-- Added `buildCommand` + `outputDirectory` (safety net against auto-detection)
-- SW-specific header listed FIRST (Vercel applies all matching, but specific first for clarity)
+**Apache equivalent** (`.htaccess` in document root):
+```apache
+# COOP/COEP headers
+Header always set Cross-Origin-Opener-Policy "same-origin"
+Header always set Cross-Origin-Embedder-Policy "require-corp"
+Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; manifest-src 'self'; worker-src 'self'; connect-src 'self'"
 
-Create `public/404.html` — simple page that redirects to `/` (Vercel rewrites handle SPA routing, but 404.html is a safety net).
+# Service Worker — no cache
+<Files "sw.js">
+    Header set Cache-Control "no-cache"
+</Files>
 
-**Backup config** — `netlify.toml` (keep as reference, not committed):
-```toml
-[build]
-  command = "npm run build"
-  publish = "dist"
+# Hashed assets — cache forever
+<FilesMatch "^assets/">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+</FilesMatch>
 
-[[headers]]
-  for = "/sw.js"
-  [headers.values]
-    Cache-Control = "no-cache"
-
-[[headers]]
-  for = "/assets/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/*"
-  [headers.values]
-    Cross-Origin-Opener-Policy = "same-origin"
-    Cross-Origin-Embedder-Policy = "require-corp"
-    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; manifest-src 'self'; media-src 'self' blob:; worker-src 'self'; connect-src 'self'"
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+# SPA fallback
+RewriteEngine On
+RewriteBase /
+RewriteRule ^index\.html$ - [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /index.html [L]
 ```
+
+**Key header requirements**:
+- `font-src 'self'` and `manifest-src 'self'` in CSP (required for self-hosted fonts + PWA manifest)
+- `/sw.js` with `Cache-Control: no-cache` (critical — browser must check for SW updates)
+- `/assets/` with `immutable` cache (Vite hashed filenames)
+- COOP/COEP must be on ALL responses (nginx `add_header` in location blocks doesn't inherit from parent — must repeat or use `always`)
+
+Create `public/404.html` — simple page that redirects to `/` (web server `try_files` handles SPA routing, 404.html is a safety net).
 
 #### Agent 2: Frontend — Meta Tags & Version Bump
 
@@ -97,8 +98,8 @@ Create `public/404.html` — simple page that redirects to `/` (Vercel rewrites 
 <meta property="og:type" content="website" />
 <meta property="og:title" content="TapBeats — Tap anything. Make music." />
 <meta property="og:description" content="Browser-based drum machine. Tap rhythms on any surface, auto-cluster sounds, map to drum samples, play back as beats. Free, open source, works offline." />
-<meta property="og:url" content="https://tapbeats.app" />
-<meta property="og:image" content="https://tapbeats.app/og-image.png" />
+<meta property="og:url" content="https://tapbeats.zerologic.com" />
+<meta property="og:image" content="https://tapbeats.zerologic.com/og-image.png" />
 ```
 
 **Twitter Card meta tags** (add to `index.html` `<head>`):
@@ -106,7 +107,7 @@ Create `public/404.html` — simple page that redirects to `/` (Vercel rewrites 
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="TapBeats — Tap anything. Make music." />
 <meta name="twitter:description" content="Browser-based drum machine. Tap rhythms on any surface, auto-cluster sounds, map to drum samples. Free, offline, open source." />
-<meta name="twitter:image" content="https://tapbeats.app/og-image.png" />
+<meta name="twitter:image" content="https://tapbeats.zerologic.com/og-image.png" />
 ```
 
 **Version bumps**:
@@ -138,7 +139,7 @@ Create `public/404.html` — simple page that redirects to `/` (Vercel rewrites 
 
 **Create `ATTRIBUTION.md`**: Document that all drum samples are synthetically generated by the project's `scripts/generate-samples.ts` script and are CC0/public domain.
 
-**Replace `LICENSE`**: MIT license (permissive, standard for audio tools, allows commercial use)
+**Replace `LICENSE`**: AGPL-3.0 (copyleft, copyright holder retains commercial licensing rights)
 
 **Create `.github/ISSUE_TEMPLATE/bug_report.md`**: Structured template with browser, OS, steps to reproduce, expected vs actual behavior, screenshots
 
@@ -148,7 +149,7 @@ Create `public/404.html` — simple page that redirects to `/` (Vercel rewrites 
 
 - Update tech versions: TypeScript 5.7, Vite 6, React 18, Zustand 5
 - Add CI badge (`![CI](https://github.com/msitarzewski/tapbeats/actions/workflows/ci.yml/badge.svg)`)
-- Add license badge (`![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)`)
+- Add license badge (`![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)`)
 - Add "Screenshots" section (placeholder for actual screenshots)
 - Update project structure to reflect M9 additions (PWA, onboarding, accessibility components)
 - Verify Getting Started instructions are accurate
@@ -180,7 +181,7 @@ Final verification using Chrome DevTools MCP tools against `npm run preview` (pr
 
 #### 4.2 COOP/COEP Header Verification (on Vercel deploy)
 ```
-1. mcp__chrome-devtools__navigate_page → https://tapbeats.app (or Vercel preview URL)
+1. mcp__chrome-devtools__navigate_page → https://tapbeats.zerologic.com (or Vercel preview URL)
 2. mcp__chrome-devtools__list_network_requests → check response headers for COOP/COEP/CSP
 3. mcp__chrome-devtools__get_network_request → verify exact header values on index.html
 4. mcp__chrome-devtools__evaluate_script → `typeof SharedArrayBuffer !== 'undefined'` (must be true)
@@ -257,11 +258,10 @@ Final verification using Chrome DevTools MCP tools against `npm run preview` (pr
 ## Deliverable Checklist
 
 ### 10.1 Deployment Infrastructure
-- [ ] `vercel.json` created with corrected COOP/COEP + CSP + cache headers
+- [ ] Web server config created (nginx/Apache) with COOP/COEP + CSP + cache headers
 - [ ] `public/404.html` created
-- [ ] Deploy to Vercel (connect GitHub repo)
-- [ ] HTTPS enforcement verified (automatic on Vercel)
-- [ ] Custom domain configuration (if applicable — `tapbeats.app`)
+- [ ] `npm run build` → copy `dist/` to `tapbeats.zerologic.com` document root
+- [ ] HTTPS enforcement verified (required for getUserMedia + SW + PWA install)
 - [ ] SharedArrayBuffer available on deployed URL (Chrome DevTools MCP verify)
 
 ### 10.2 Final QA Round (Chrome DevTools MCP)
@@ -280,7 +280,7 @@ Final verification using Chrome DevTools MCP tools against `npm run preview` (pr
 - [ ] `README.md` — polished with correct versions, badges
 - [ ] `CONTRIBUTING.md` — verified accurate (exists from M1)
 - [ ] `CODE_OF_CONDUCT.md` — Contributor Covenant v2.1
-- [ ] `LICENSE` — MIT (replace TBD placeholder)
+- [ ] `LICENSE` — AGPL-3.0 (replace TBD placeholder)
 - [ ] `CHANGELOG.md` — v1.0.0 entry covering M1-M10
 - [ ] `ATTRIBUTION.md` — synthetic samples documentation
 - [ ] `.github/ISSUE_TEMPLATE/bug_report.md`
@@ -318,11 +318,11 @@ Final verification using Chrome DevTools MCP tools against `npm run preview` (pr
 
 ## Acceptance Criteria
 
-- [ ] App deployed and accessible via public URL (Vercel)
+- [ ] App deployed and accessible at `https://tapbeats.zerologic.com`
 - [ ] HTTPS enabled, COOP/COEP/CSP headers verified via Chrome DevTools MCP
 - [ ] SharedArrayBuffer available (AudioWorklet functions correctly)
 - [ ] Full E2E flow works on deployed version (verified via Chrome DevTools MCP)
-- [ ] README, CONTRIBUTING, CODE_OF_CONDUCT, LICENSE (MIT) in repo
+- [ ] README, CONTRIBUTING, CODE_OF_CONDUCT, LICENSE (AGPL-3.0) in repo
 - [ ] All samples attributed in ATTRIBUTION.md
 - [ ] Clean clone → `npm install` → `npm run build` → works
 - [ ] Lighthouse: Performance >90, A11y >95, PWA passing
@@ -332,32 +332,26 @@ Final verification using Chrome DevTools MCP tools against `npm run preview` (pr
 
 ---
 
-## Hosting Decision: Vercel (with rationale)
+## Hosting Decision: Self-Hosted at `tapbeats.zerologic.com`
 
-### Why Not GitHub Pages
-GitHub Pages does **not** support custom HTTP response headers. There is no configuration file, no workaround, and no plan to add this. Cannot set `Cross-Origin-Opener-Policy` or `Cross-Origin-Embedder-Policy` headers, which means **SharedArrayBuffer will be unavailable and AudioWorklet memory sharing will fail**.
+### Why Self-Hosted
+User's own web server — full control over headers, deployment, and configuration. No third-party hosting service needed.
 
-The only workaround is a Service Worker-based header injection hack (`coi-serviceworker`), which:
-- Fails on first load before the SW is installed (double-reload UX)
-- Conflicts with our existing precache Service Worker
-- Is fragile and not suitable for production
-
-### Why Vercel over Netlify
-| Factor | Vercel | Netlify |
-|--------|--------|---------|
-| Build minutes (free) | 6,000/mo | 300/mo |
-| Vite detection | Zero-config | Zero-config |
-| Header support | Full (vercel.json) | Full (netlify.toml) |
-| PR previews | Automatic, full headers | Automatic, full headers |
-| HTTPS | Automatic, free | Automatic, free |
-
-Vercel's 20x build minute advantage matters for active PR-based development.
+### Deployment Process
+1. `npm run build` — produces `dist/` with code-split, hashed assets
+2. Copy `dist/` contents to web server document root for `tapbeats.zerologic.com`
+3. Configure web server headers (nginx or Apache — configs above)
+4. Verify HTTPS is active (required for getUserMedia + Service Worker + PWA install)
+5. Verify COOP/COEP headers via Chrome DevTools MCP
 
 ### COOP/COEP Implications
 - Third-party iframes will break unless they also send `Cross-Origin-Resource-Policy: cross-origin`
 - External images/media from CDNs will be blocked unless those servers send CORP headers
 - `window.open` and popup communication is restricted
 - TapBeats is fully self-contained (all assets local), so none of these are issues
+
+### Critical nginx Note
+`add_header` in a child `location` block does **not** inherit from parent. Each location that needs COOP/COEP must set them explicitly (see config above). Use `always` to ensure headers are sent on all response codes (including 304).
 
 ---
 
