@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+import { PlaybackEngine } from '@/audio/playback/PlaybackEngine';
 import { SessionManager } from '@/state/persistence/SessionManager';
 import { useSessionStore } from '@/state/sessionStore';
 
@@ -30,6 +31,9 @@ export function useSessionRestore(): { restoring: boolean } {
     const manager = new SessionManager();
 
     const restore = async () => {
+      // Initialize PlaybackEngine eagerly so samples are ready for any screen
+      void PlaybackEngine.getInstance().init();
+
       // Always refresh the session list
       await manager.refreshSessionList();
       await manager.refreshStorageInfo();
