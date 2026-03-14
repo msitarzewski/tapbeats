@@ -37,6 +37,12 @@
   box-shadow: 0 0 0 2px var(--accent-primary-muted);
 }
 
+@media (min-width: 1024px) {
+  .backButton {
+    display: none;
+  }
+}
+
 .title {
   font-size: var(--text-lg);
   font-weight: 700;

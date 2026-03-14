@@ -128,16 +128,24 @@
 
 ---
 
-### Post-Launch: App-Wide Navigation (2026-03-13)
+### Post-Launch: Navigation + Session Persistence + Playback Fixes (2026-03-13)
 - **Branch**: `feature/app-navigation` (from `fix/qa-touchups`)
-- **Status**: Implementation complete, pending visual QA
-- **New files**: `src/components/navigation/BottomNav.tsx` + CSS, `src/components/navigation/RouteAnnouncer.tsx`
-- **Modified files**: `Icon.tsx` (+3 icons: home, layers, music), `theme.css` (z-index scale + nav tokens), `AppShell.tsx` + CSS (nav integration + route-aware padding), `QuantizationControls.tsx` + CSS (home button for timeline escape), `TransportBar.module.css` (z-index token)
-- **Key features**: Mobile bottom tab bar (56px + safe area), desktop side rail (64px icon-only), 4 tabs (Home/Record/Review/Timeline), tab bar hides on timeline mobile (transport bar conflict), home button in QuantizationControls for timeline escape, route announcer for a11y, glassmorphism nav background
+- **Status**: In progress — navigation working, session persistence partially working, playback fixes applied
+- **New files**: `src/components/navigation/BottomNav.tsx` + CSS, `src/components/navigation/RouteAnnouncer.tsx`, `src/hooks/useSessionRestore.ts`
+- **Modified files**: `Icon.tsx` (+3 icons), `theme.css` (z-index + nav tokens), `AppShell.tsx` + CSS (nav + route-aware padding), `QuantizationControls.tsx` + CSS (home button), `TransportBar.module.css` (z-index token), `App.tsx` (AppRoutes + session restore), `HomeScreen.tsx` (New Session button), `TimelineScreen.tsx` (auto-session ID), `SessionCard.module.css` (opacity fix), `useQuantizedPlayback.ts` (first hit fix), `quantizeHits.ts` (normalize to beat 1), `useSessionRestore.ts` (eager PlaybackEngine init), `ClusterScreen.module.css` + `RecordingHeader.module.css` + `SettingsScreen.module.css` (hide back buttons on desktop)
+- **Key features**:
+  - Mobile bottom tab bar + desktop side rail (single responsive component)
+  - Session restore from IndexedDB on app startup via localStorage key
+  - Eager PlaybackEngine init (18 samples loaded at startup)
+  - First hit playback fix (>= instead of >)
+  - Hit time normalization (first hit at beat 1)
+  - New Session button resets all stores
+  - Auto-session ID creation on timeline entry
+- **Known issue**: Auto-save captures empty state — session ID created before stores populate. Needs timing fix.
 - **Key decisions**:
-  - Single responsive component (not separate mobile/desktop)
-  - Settings excluded from tabs (low-frequency, stays as gear icon)
-  - Tab bar hides on timeline rather than stacking two fixed bottom bars
+  - Settings excluded from nav tabs (low-frequency destination)
+  - Tab bar hides on timeline mobile (transport bar conflict)
+  - PlaybackEngine init moved from per-screen to app startup
   - Z-index scale formalized in theme tokens
 
 ## Next Up

@@ -53,6 +53,13 @@ export function TimelineScreen() {
     void engine.init().then(() => {
       useQuantizationStore.getState().detectAndSetBpm();
     });
+
+    // Auto-create a session ID if there isn't one yet, so auto-save works
+    const { currentSessionId } = useSessionStore.getState();
+    if (currentSessionId === null) {
+      const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+      useSessionStore.getState().setCurrentSession(id, 'Untitled Beat');
+    }
   }, []);
 
   // Initialize track configs when clusters/instruments change

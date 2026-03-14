@@ -39,10 +39,10 @@
 @media (min-width: 1024px) {
   .main {
     margin-left: var(--nav-rail-width);
-    padding-bottom: 0;
+    padding: 0 var(--space-6);
   }
 
   .shell[data-route="timeline"] .main {
-    padding-bottom: 0;
+    padding: 0;
   }
 }

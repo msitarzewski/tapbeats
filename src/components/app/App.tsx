@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { useServiceWorker } from '@/hooks/useServiceWorker';
+import { useSessionRestore } from '@/hooks/useSessionRestore';
 import { initThemeListener } from '@/state/settingsStore';
 import { isBrowserSupported } from '@/utils/featureDetection';
 
@@ -33,6 +34,26 @@ function RouteSpinner() {
   );
 }
 
+function AppRoutes() {
+  const { restoring } = useSessionRestore();
+
+  if (restoring) {
+    return <RouteSpinner />;
+  }
+
+  return (
+    <Suspense fallback={<RouteSpinner />}>
+      <Routes>
+        <Route path="/" element={<HomeScreen />} />
+        <Route path="/record" element={<RecordingScreen />} />
+        <Route path="/review" element={<ClusterScreen />} />
+        <Route path="/timeline" element={<TimelineScreen />} />
+        <Route path="/settings" element={<SettingsScreen />} />
+      </Routes>
+    </Suspense>
+  );
+}
+
 export function App() {
   const { status, update } = useServiceWorker();
 
@@ -46,15 +67,7 @@ export function App() {
     <ErrorBoundary>
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AppShell>
-          <Suspense fallback={<RouteSpinner />}>
-            <Routes>
-              <Route path="/" element={<HomeScreen />} />
-              <Route path="/record" element={<RecordingScreen />} />
-              <Route path="/review" element={<ClusterScreen />} />
-              <Route path="/timeline" element={<TimelineScreen />} />
-              <Route path="/settings" element={<SettingsScreen />} />
-            </Routes>
-          </Suspense>
+          <AppRoutes />
         </AppShell>
         <UpdateToast status={status} onUpdate={update} />
       </BrowserRouter>

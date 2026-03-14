@@ -115,5 +115,13 @@ export function quantizeHits(
   // Sort by quantized time ascending
   result.sort((a, b) => a.quantizedTime - b.quantizedTime);
 
-  return result;
+  // Normalize: shift all hits so the first one starts at time 0
+  const firstTime = result[0]?.quantizedTime ?? 0;
+  if (firstTime <= 0) return result;
+
+  return result.map((hit) => ({
+    ...hit,
+    originalTime: hit.originalTime - firstTime,
+    quantizedTime: hit.quantizedTime - firstTime,
+  }));
 }

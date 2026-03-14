@@ -126,7 +126,7 @@ export function useQuantizedPlayback() {
         const hitTime = mode === 'original' ? hit.originalTime : hit.quantizedTime;
         const relativeTime = hitTime - firstTime;
 
-        if (relativeTime > scheduledUpToRef.current && relativeTime <= lookaheadEnd) {
+        if (relativeTime >= scheduledUpToRef.current && relativeTime <= lookaheadEnd) {
           const when = startTimeRef.current + relativeTime;
           engine.playScheduled(hit.instrumentId, when, hit.velocity, String(hit.clusterId));
         }
