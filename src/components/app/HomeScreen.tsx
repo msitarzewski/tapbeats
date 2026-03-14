@@ -1,13 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { PlaybackEngine } from '@/audio/playback/PlaybackEngine';
 import { OnboardingOverlay } from '@/components/onboarding/OnboardingOverlay';
 import { Button } from '@/components/shared/Button';
 import { Icon } from '@/components/shared/Icon';
 import { Modal } from '@/components/shared/Modal';
+import { useClusterStore } from '@/state/clusterStore';
 import { SessionManager } from '@/state/persistence/SessionManager';
+import { useQuantizationStore } from '@/state/quantizationStore';
+import { useRecordingStore } from '@/state/recordingStore';
 import { useSessionStore } from '@/state/sessionStore';
 import { useSettingsStore } from '@/state/settingsStore';
+import { useTimelineStore } from '@/state/timelineStore';
 
 import styles from './HomeScreen.module.css';
 import { InstallBanner } from './InstallBanner';
@@ -19,6 +24,16 @@ export function HomeScreen() {
   const sessions = useSessionStore((s) => s.sessions);
   const hasSeenOnboarding = useSettingsStore((s) => s.hasSeenOnboarding);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const handleNewSession = useCallback(() => {
+    useRecordingStore.getState().reset();
+    useClusterStore.getState().reset();
+    useQuantizationStore.getState().reset();
+    useTimelineStore.getState().reset();
+    useSessionStore.getState().setCurrentSession(null, 'Untitled Beat');
+    void PlaybackEngine.getInstance().warmUp();
+    navigate('/record');
+  }, [navigate]);
 
   useEffect(() => {
     const manager = new SessionManager();
@@ -49,7 +64,14 @@ export function HomeScreen() {
       <p className={styles.subtitle}>Tap any surface to create a beat</p>
 
       <div className={styles.actions}>
-        <RecordButton />
+        {sessions.length > 0 ? (
+          <Button variant="primary" onClick={handleNewSession}>
+            <Icon name="plus" size={18} />
+            New Session
+          </Button>
+        ) : (
+          <RecordButton />
+        )}
         <button
           className={styles.settingsBtn}
           onClick={() => {
