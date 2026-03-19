@@ -2,8 +2,13 @@
 
 [![CI](https://github.com/msitarzewski/tapbeats/actions/workflows/ci.yml/badge.svg)](https://github.com/msitarzewski/tapbeats/actions/workflows/ci.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+[![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink?logo=github-sponsors&logoColor=white)](https://github.com/sponsors/msitarzewski)
 
 **Tap anything. Make music.**
+
+<p align="center">
+  <a href="https://tapbeats.zerologic.com"><strong>Try TapBeats Live</strong></a>
+</p>
 
 TapBeats transforms the most instinctive form of music-making -- tapping on
 surfaces -- into polished, looping drum beats. Record yourself tapping on a
@@ -159,6 +164,18 @@ improvement, or a documentation fix -- all input helps.
 
 A full contributing guide is coming soon. In the meantime, feel free to open
 an issue or start a discussion.
+
+## Support the Project
+
+If TapBeats brings you joy, consider sponsoring its development:
+
+<p align="center">
+  <a href="https://github.com/sponsors/msitarzewski">
+    <img src="https://img.shields.io/badge/%E2%9D%A4%EF%B8%8F_Sponsor_on_GitHub-ea4aaa?style=for-the-badge&logo=github-sponsors&logoColor=white" alt="Sponsor on GitHub" />
+  </a>
+</p>
+
+Your support helps cover hosting, sample library licensing, and continued development. Every contribution -- no matter the size -- is deeply appreciated.
 
 ## License
 
